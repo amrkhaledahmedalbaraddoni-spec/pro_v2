@@ -1,0 +1,351 @@
+package com.red.server.admin.service
+
+import tools.jackson.databind.ObjectMapper
+import com.red.server.admin.model.*
+import com.red.server.admin.repository.*
+import com.red.server.auth.model.AccountRole
+import com.red.server.auth.model.AccountStatus
+import com.red.server.auth.model.UserAccount
+import com.red.server.auth.repository.UserAccountRepository
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.Pageable
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.util.UUID
+
+/**
+ * 🛡️ Admin Service - خدمات الإدارة الشاملة
+ */
+@Service
+class AdminService(
+    private val auditLog: AdminAuditLogRepository,
+    private val analytics: SystemAnalyticsRepository,
+    private val health: SystemHealthRepository,
+    private val adminSessions: AdminSessionRepository,
+    private val featureFlags: FeatureFlagRepository,
+    private val userReports: UserReportRepository,
+    private val announcements: SystemAnnouncementRepository,
+    private val backups: BackupHistoryRepository,
+    private val users: UserAccountRepository,
+    private val json: ObjectMapper
+) {
+    // ━━━━━━━━━━━━━━━━ Audit Log ━━━━━━━━━━━━━━━━
+    fun recordAudit(
+        adminId: UUID?,
+        adminUsername: String?,
+        action: String,
+        category: String,
+        targetType: String? = null,
+        targetId: String? = null,
+        description: String? = null,
+        metadata: Map<String, Any?> = emptyMap(),
+        ipAddress: String? = null,
+        userAgent: String? = null,
+        severity: String = "INFO"
+    ) {
+        auditLog.save(AdminAuditLog(
+            adminId = adminId,
+            adminUsername = adminUsername,
+            action = action,
+            category = category,
+            targetType = targetType,
+            targetId = targetId,
+            description = description,
+            metadata = if (metadata.isEmpty()) null else json.writeValueAsString(metadata),
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            severity = severity
+        ))
+    }
+
+    fun getAuditLog(pageable: Pageable): Page<AdminAuditLog> =
+        auditLog.findAll(pageable).let { PageImpl(it.content, pageable, it.totalElements) }
+
+    fun getAuditByAdmin(adminId: UUID, pageable: Pageable): Page<AdminAuditLog> =
+        auditLog.findByAdminIdOrderByCreatedAtDesc(adminId, pageable)
+
+    fun getAuditByAction(action: String, pageable: Pageable): Page<AdminAuditLog> =
+        auditLog.findByActionOrderByCreatedAtDesc(action, pageable)
+
+    fun getAuditByCategory(category: String, pageable: Pageable): Page<AdminAuditLog> =
+        auditLog.findByCategoryOrderByCreatedAtDesc(category, pageable)
+
+    fun getRecentCritical(): List<AdminAuditLog> =
+        auditLog.findRecentCritical(Instant.now().minusSeconds(86400))
+
+    // ━━━━━━━━━━━━━━━━ Analytics ━━━━━━━━━━━━━━━━
+    fun getAnalytics(start: java.time.LocalDate, end: java.time.LocalDate): List<SystemAnalytics> =
+        analytics.findByStatDateBetweenOrderByStatDateDesc(start, end)
+
+    fun getRecentAnalytics(): List<SystemAnalytics> = analytics.findTop30ByOrderByStatDateDesc()
+
+    /**
+     * حساب الإحصائيات الحالية من الـ DB.
+     *
+     * ⚠️ كانت الأعداد تُحسب بتحميل **كل** الصفوف ثم `.size`:
+     *     users.findAllByStatusOrderByCreatedAtAsc(PENDING).size
+     *     users.findAll().count { it.createdAt.isAfter(...) }
+     * أي أربع استعلامات تجرّ كل جدول المستخدمين إلى الذاكرة (وتُهيّئ كائن
+     * JPA لكل صف) لتُرجع رقمًا واحدًا. على قاعدة حقيقية هذا يتحوّل إلى
+     * ثوانٍ وضغط ذاكرة على كل تحديث للوحة، بلا أي مقابل.
+     *
+     * الآن العدّ في قاعدة البيانات: `countByStatus` و`countCreatedAfter`
+     * موجودتان في المستودع أصلًا ولم تكونا مستخدمتين. وبذلك تعود القيم
+     * `Long` — وهو النوع المتوقّع في العقد أيضًا (كان `Int` من `.size`
+     * يخالف `totalUsers: Long` في الخريطة نفسها).
+     */
+    @Transactional(readOnly = true)
+    fun calculateCurrentAnalytics(): Map<String, Any> {
+        val totalUsers = users.count()
+        val pendingUsers = users.countByStatus(AccountStatus.PENDING)
+        val bannedUsers = users.countByStatus(AccountStatus.BANNED)
+        val approvedUsers = users.countByStatus(AccountStatus.APPROVED)
+        val newUsers24h = users.countCreatedAfter(Instant.now().minusSeconds(86400))
+
+        return mapOf(
+            "totalUsers" to totalUsers,
+            "approvedUsers" to approvedUsers,
+            "pendingUsers" to pendingUsers,
+            "bannedUsers" to bannedUsers,
+            "newUsers24h" to newUsers24h,
+            "approvalRate" to if (totalUsers > 0) (approvedUsers.toDouble() / totalUsers * 100) else 0.0
+        )
+    }
+
+    // ━━━━━━━━━━━━━━━━ System Health ━━━━━━━━━━━━━━━━
+    fun getRecentHealth(): List<SystemHealth> = health.findRecentHealthChecks(Instant.now().minusSeconds(300))
+    fun getDegradedComponents(): List<SystemHealth> = health.findByStatusOrderByLastCheckAtDesc("DEGRADED") +
+        health.findByStatusOrderByLastCheckAtDesc("DOWN")
+
+    fun recordHealth(
+        component: String,
+        status: String,
+        cpuUsage: Float? = null,
+        memoryUsage: Float? = null,
+        diskUsage: Float? = null,
+        activeConnections: Int? = null,
+        requestsPerSecond: Float? = null,
+        averageResponseMs: Float? = null,
+        errorRate: Float? = null,
+        details: Map<String, Any?> = emptyMap()
+    ) {
+        health.save(SystemHealth(
+            component = component,
+            status = status,
+            cpuUsage = cpuUsage,
+            memoryUsage = memoryUsage,
+            diskUsage = diskUsage,
+            activeConnections = activeConnections,
+            requestsPerSecond = requestsPerSecond,
+            averageResponseMs = averageResponseMs,
+            errorRate = errorRate,
+            details = if (details.isEmpty()) null else json.writeValueAsString(details)
+        ))
+    }
+
+    // ━━━━━━━━━━━━━━━━ Admin Sessions ━━━━━━━━━━━━━━━━
+    fun getActiveSessions(adminId: UUID): List<AdminSession> =
+        adminSessions.findActiveSessionsForAdmin(adminId)
+
+    fun getAllActiveSessions(): List<AdminSession> =
+        adminSessions.findByIsActiveAndExpiresAtAfter(true, Instant.now())
+
+    @Transactional
+    fun terminateSession(sessionId: UUID, reason: String) {
+        adminSessions.findById(sessionId).ifPresent { session ->
+            session.isActive = false
+            session.terminatedAt = Instant.now()
+            session.terminationReason = reason
+            adminSessions.save(session)
+        }
+    }
+
+    @Transactional
+    fun cleanupExpiredSessions(): Int {
+        val expired = adminSessions.findByIsActiveAndExpiresAtBefore(true, Instant.now())
+        expired.forEach {
+            it.isActive = false
+            it.terminatedAt = Instant.now()
+            it.terminationReason = "EXPIRED"
+        }
+        adminSessions.saveAll(expired)
+        return expired.size
+    }
+
+    // ━━━━━━━━━━━━━━━━ Feature Flags ━━━━━━━━━━━━━━━━
+    fun getFeatureFlags(): List<FeatureFlag> = featureFlags.findAll()
+    fun getFeatureFlag(name: String): FeatureFlag? = featureFlags.findByFlagName(name)
+    fun getActiveFeatureFlags(): List<FeatureFlag> = featureFlags.findActiveFlags(Instant.now())
+
+    fun isFeatureEnabled(name: String, userId: UUID? = null): Boolean {
+        val flag = featureFlags.findByFlagName(name) ?: return false
+        if (!flag.enabled) return false
+        val expiresAt = flag.expiresAt // نسخة محلية — expiresAt قابلة للتعديل فلا smart-cast
+        if (expiresAt != null && expiresAt.isBefore(Instant.now())) return false
+        if (userId != null) {
+            val targetIds = flag.targetUserIds // local copy — mutable property cannot smart-cast
+            if (targetIds != null) {
+                val targets = targetIds.split(",").map { it.trim() }
+                if (targets.contains(userId.toString())) return true
+            }
+        }
+        return flag.rolloutPercentage >= 100 ||
+            (flag.rolloutPercentage > 0 && (userId?.hashCode()?.toLong()?.rem(100)?.toInt() ?: 0) < flag.rolloutPercentage)
+    }
+
+    @Transactional
+    fun updateFeatureFlag(name: String, adminId: UUID, updates: Map<String, Any?>): FeatureFlag? {
+        val flag = featureFlags.findByFlagName(name) ?: return null
+        (updates["enabled"] as? Boolean)?.let { flag.enabled = it }
+        (updates["rolloutPercentage"] as? Number)?.toInt()?.let { flag.rolloutPercentage = it.coerceIn(0, 100) }
+        updates["config"]?.let { flag.config = json.writeValueAsString(it) }
+        updates["description"]?.let { flag.description = it as? String }
+        flag.updatedBy = adminId
+        flag.updatedAt = Instant.now()
+        return featureFlags.save(flag)
+    }
+
+    // ━━━━━━━━━━━━━━━━ User Reports ━━━━━━━━━━━━━━━━
+    fun getReports(status: String? = null, pageable: Pageable): Page<UserReport> {
+        return if (status != null) userReports.findByStatusOrderByCreatedAtDesc(status, pageable)
+        else userReports.findAll(pageable).let { PageImpl(it.content, pageable, it.totalElements) }
+    }
+
+    /** Combined status+category filter; either side may be null (falls back to the single-filter paths). */
+    fun getReportsFiltered(status: String?, category: String?, pageable: Pageable): Page<UserReport> {
+        return when {
+            status != null && category != null ->
+                userReports.findByStatusAndCategoryOrderByCreatedAtDesc(status, category, pageable)
+            category != null -> userReports.findByCategoryOrderByCreatedAtDesc(category, pageable)
+            else -> getReports(status, pageable)
+        }
+    }
+
+    fun getPendingReports(pageable: Pageable): Page<UserReport> =
+        userReports.findByStatusOrderByCreatedAtDesc("PENDING", pageable)
+
+    fun getReportsForAdmin(adminId: UUID, status: String = "PENDING", pageable: Pageable): Page<UserReport> =
+        userReports.findByAssignedAdminIdAndStatusOrderByCreatedAtDesc(adminId, status, pageable)
+
+    @Transactional
+    fun resolveReport(reportId: UUID, adminId: UUID, resolution: String, notes: String? = null): UserReport? {
+        val report = userReports.findById(reportId).orElse(null) ?: return null
+        report.status = "RESOLVED"
+        report.resolution = resolution
+        report.adminNotes = notes
+        report.resolvedAt = Instant.now()
+        report.assignedAdminId = adminId
+        return userReports.save(report)
+    }
+
+    @Transactional
+    fun dismissReport(reportId: UUID, adminId: UUID, notes: String? = null): UserReport? {
+        val report = userReports.findById(reportId).orElse(null) ?: return null
+        report.status = "DISMISSED"
+        report.adminNotes = notes
+        report.resolvedAt = Instant.now()
+        report.assignedAdminId = adminId
+        return userReports.save(report)
+    }
+
+    @Transactional
+    fun assignReport(reportId: UUID, adminId: UUID): UserReport? {
+        val report = userReports.findById(reportId).orElse(null) ?: return null
+        report.assignedAdminId = adminId
+        return userReports.save(report)
+    }
+
+    fun countPendingReports(): Long = userReports.countPending()
+
+    // ━━━━━━━━━━━━━━━━ Announcements ━━━━━━━━━━━━━━━━
+    fun getAnnouncements(published: Boolean? = null): List<SystemAnnouncement> {
+        return if (published != null) announcements.findByIsPublishedOrderByPriorityDescShowFromDesc(published)
+        else announcements.findAll()
+    }
+
+    fun getActiveAnnouncements(): List<SystemAnnouncement> =
+        announcements.findActiveAnnouncements(Instant.now())
+
+    @Transactional
+    fun createAnnouncement(
+        title: String,
+        body: String,
+        type: String,
+        targetAudience: String,
+        priority: Int,
+        isDismissible: Boolean,
+        adminId: UUID,
+        showFrom: Instant = Instant.now(),
+        showUntil: Instant? = null
+    ): SystemAnnouncement {
+        return announcements.save(SystemAnnouncement(
+            title = title, body = body, type = type,
+            targetAudience = targetAudience, priority = priority,
+            isDismissible = isDismissible, showFrom = showFrom, showUntil = showUntil,
+            createdBy = adminId
+        ))
+    }
+
+    @Transactional
+    fun publishAnnouncement(id: UUID, adminId: UUID): SystemAnnouncement? {
+        val ann = announcements.findById(id).orElse(null) ?: return null
+        ann.isPublished = true
+        ann.publishedBy = adminId
+        ann.publishedAt = Instant.now()
+        ann.updatedAt = Instant.now()
+        return announcements.save(ann)
+    }
+
+    @Transactional
+    fun deleteAnnouncement(id: UUID): Boolean {
+        return if (announcements.existsById(id)) {
+            announcements.deleteById(id); true
+        } else false
+    }
+
+    // ━━━━━━━━━━━━━━━━ Backups — Real Implementation ━━━━━━━━━━━━━━━━
+    fun getBackups(pageable: Pageable): Page<BackupHistory> = backups.findAll(pageable).let { PageImpl(it.content, pageable, it.totalElements) }
+    fun getRecentBackups(): List<BackupHistory> = backups.findTop20ByOrderByStartedAtDesc()
+
+    /**
+     * Docker-host backup is intentionally not executed by the web process.
+     * Giving Backend the Docker socket would make one application RCE equal to
+     * root on the host. Operators must use scripts/backup-platform.sh instead.
+     *
+     * الرسالة الموحدة مع الواجهة (Backups.tsx) و(AdminV2Controller):
+     * «النسخ والاستعادة عبر مشغل النظام فقط (Docker Host):
+     * scripts/backup-platform.sh وscripts/restore-platform.sh».
+     * الرموز الآلية ثابتة عمداً (BACKUP_/RESTORE_OPERATOR_WORKFLOW_REQUIRED)
+     * وتعتمد عليها الاختبارات والواجهة للتمييز — لا تغيّر نص الاستثناء.
+     */
+    fun startBackup(backupType: String, adminId: UUID, notes: String? = null): BackupHistory =
+        throw UnsupportedOperationException("BACKUP_OPERATOR_WORKFLOW_REQUIRED")
+
+    fun completeBackup(backupId: UUID, sizeBytes: Long, checksum: String): BackupHistory? =
+        throw UnsupportedOperationException("BACKUP_OPERATOR_WORKFLOW_REQUIRED")
+
+    fun restoreBackup(backupId: UUID, confirmCode: String): Boolean =
+        throw UnsupportedOperationException("RESTORE_OPERATOR_WORKFLOW_REQUIRED")
+
+    @Transactional
+    fun deleteBackup(backupId: UUID): Boolean {
+        return if (backups.existsById(backupId)) {
+            val backup = backups.findById(backupId).orElse(null)
+            backup?.let {
+                try {
+                    val f = java.io.File(it.storageLocation)
+                    if (f.exists()) f.delete()
+                } catch (_: Exception) {}
+            }
+            backups.deleteById(backupId); true
+        } else false
+    }
+}
+
+/**
+ * PageImpl helper
+ */
+private class PageImpl<T : Any>(content: List<T>, pageable: Pageable, total: Long) :
+    org.springframework.data.domain.PageImpl<T>(content, pageable, total)

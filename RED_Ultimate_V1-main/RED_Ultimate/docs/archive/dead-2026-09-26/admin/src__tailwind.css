@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Tailwind v3 — المصدر الوحيد ليوتيليتي yn-* هو tailwind.config.ts ───
+ * حُذف ازدواج `younes-*` مقابل `yn-*`: لا شيء في src يستعمل
+ * bg-younes-* إطلاقًا، والمعتمد هو bg-yn-* / text-yn-* / border-yn-*
+ * المعرّفة في `colors.yn` داخل tailwind.config.ts.
+ * كتلة @theme المحذوفة خاصة بـTailwind v4 وغير صالحة هنا.
+ * قيَم وقت التشغيل (CSS vars) مصدرها styles.css ‏(--yns-*)، وتُستهلَك
+ * من tailwind.config.ts عبر backgroundImage — لا تكرار للقيم هنا. */

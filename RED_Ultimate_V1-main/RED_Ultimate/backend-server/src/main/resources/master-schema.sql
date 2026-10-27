@@ -1,0 +1,11 @@
+-- RED Sovereign master schema overview.
+-- The executable schema is maintained by the Flyway migrations in db/migration.
+--
+-- PostgreSQL stores accounts, devices, groups, call history, moderation,
+-- audit, media grants, notifications and operational settings.
+-- MongoDB stores encrypted messages, posts, stories, groups and live media
+-- documents.
+-- Redis stores sessions, presence, rate limits, notification counters and
+-- other short-lived coordination data.
+--
+-- This file is intentionally descriptive; do not apply it instead of Flyway.

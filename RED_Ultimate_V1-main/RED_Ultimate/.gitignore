@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════════
+# RED Sovereign / YOUNES — .gitignore (2026-09-26)
+# القاعدة: لا أسرار، لا مخرجات بناء، لا بقايا استعادة ترتفع أبداً.
+# ═══════════════════════════════════════════════════════════════════
+
+# ─── الأسرار (الأعلى خطورة — منع بات) ───
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+backend-server/src/main/resources/secrets/
+keystore.properties
+red-app/keystore.properties
+*.jks
+*.keystore
+red-app/signing/*.p12
+
+# استثناء: debug key عام مقصود
+!red-app/signing/red-debug.p12
+
+# ─── مخرجات البناء ───
+build/
+dist/
+out/
+apk-output/
+**/build/
+**/dist/
+**/out/
+**/apk-output/
+
+# ─── Gradle ───
+.gradle/
+local.properties
+local-maven/*.aar
+local-maven/*.pom
+local-maven/*.module
+local-maven/*.sha1
+local-maven/*.sha256
+local-maven/*.sha512
+
+# ─── Android ───
+.kotlin/
+.cluster/
+
+# ─── Node (لوحة الأدمن) ───
+node_modules/
+*.log
+npm-debug.log*
+
+# ─── IDEs ───
+.idea/
+.vscode/
+*.iml
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── مخرجات استعادة النسخ الكبيرة ───
+prebuilt-backend/
+backups/
+admin_dashboard/dev-mock.log

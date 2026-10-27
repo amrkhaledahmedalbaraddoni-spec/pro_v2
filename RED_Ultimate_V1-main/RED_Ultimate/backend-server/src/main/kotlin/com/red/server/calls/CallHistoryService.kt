@@ -1,0 +1,216 @@
+package com.red.server.calls
+
+import com.red.server.social.UuidV7
+import org.springframework.data.domain.Sort
+import org.springframework.data.mongodb.core.MongoTemplate
+import org.springframework.data.mongodb.core.query.Criteria
+import org.springframework.data.mongodb.core.query.Query
+import org.springframework.stereotype.Service
+import java.time.Duration
+import java.time.Instant
+
+@Service
+class CallHistoryService(
+    private val mongo: MongoTemplate,
+    private val publisher: CallEventPublisher
+) {
+    fun start(initiator: String, target: String, targetLabel: String, type: CallType, route: CallRoute, requestedId: String? = null): CallHistoryDocument {
+        val id = requestedId?.takeIf { it.isNotBlank() } ?: UuidV7.next()
+        mongo.findById(id, CallHistoryDocument::class.java)?.let { existing ->
+            require(existing.initiatorId == initiator && existing.targetId == target) {
+                "Call id reuse cannot redirect an existing call"
+            }
+            return existing
+        }
+        val doc = mongo.save(CallHistoryDocument(id, initiator, target, targetLabel, type, route, CallStatus.RINGING))
+        publisher.callStarted(id, initiator, target, type.name, route.name)
+        return doc
+    }
+
+    fun answer(callId: String, actorId: String? = null): CallHistoryDocument = update(callId) {
+        if (actorId != null) require(it.targetId == actorId) { "Only the called account can answer" }
+        require(it.status == CallStatus.RINGING) { "Call is not ringing" }
+        it.status = CallStatus.ACTIVE
+        it.answeredAt = Instant.now()
+        publisher.callAnswered(callId)
+    }
+
+    fun end(callId: String, actorId: String? = null, failed: Boolean = false): CallHistoryDocument = update(callId) {
+        if (actorId != null) {
+            require(it.initiatorId == actorId || it.targetId == actorId) { "Only call participants can end" }
+        }
+        val now = Instant.now()
+        it.endedAt = now
+        if (failed) {
+            it.status = CallStatus.FAILED
+            publisher.callEnded(callId, 0L, "FAILED")
+            return@update
+        }
+        if (it.answeredAt == null || it.status == CallStatus.RINGING) {
+            it.status = CallStatus.MISSED
+            publisher.callMissed(callId)
+            return@update
+        }
+        val durationMs = Duration.between(it.answeredAt, now).toMillis()
+        it.durationSeconds = durationMs / 1000
+        it.status = CallStatus.ENDED
+        publisher.callEnded(callId, durationMs, "NORMAL")
+    }
+
+    fun missed(callId: String): CallHistoryDocument = update(callId) {
+        it.status = CallStatus.MISSED
+        it.endedAt = Instant.now()
+        publisher.callMissed(callId)
+    }
+
+    fun findById(callId: String): CallHistoryDocument? = mongo.findById(callId, CallHistoryDocument::class.java)
+
+    /** الطرف المُستدعى رفض المكالمة صراحةً — تُسجَّل REJECTED وليس MISSED. */
+    fun rejected(callId: String, actorId: String? = null): CallHistoryDocument = update(callId) {
+        if (actorId != null) require(it.targetId == actorId) { "Only the called account can reject" }
+        it.status = CallStatus.REJECTED
+        it.endedAt = Instant.now()
+        publisher.callEnded(callId, 0L, "REJECTED")
+    }
+
+    /** الطرف المُستدعى في مكالمة نشطة بالفعل — تُسجَّل BUSY. */
+    fun busy(callId: String): CallHistoryDocument = update(callId) {
+        it.status = CallStatus.BUSY
+        it.endedAt = Instant.now()
+        publisher.callEnded(callId, 0L, "BUSY")
+    }
+
+    /** WhatsApp/Telegram: unanswered RINGING older than 45s becomes MISSED. */
+    fun expireStaleRinging(olderThan: Duration = Duration.ofSeconds(45)): Int =
+        expireStaleRingingWithDocs(olderThan).size
+
+    /**
+     * نفس الانتهاء مع إرجاع المستندات المنتهية حتى تُشعَر أطرافها
+     * (المتصل يعلم NO_ANSWER بدل الصمت) وتُطهَّر طوابيرها.
+     */
+    fun expireStaleRingingWithDocs(olderThan: Duration = Duration.ofSeconds(45)): List<CallHistoryDocument> {
+        val cutoff = Instant.now().minus(olderThan)
+        val query = Query(
+            Criteria.where("status").`is`(CallStatus.RINGING).and("startedAt").lt(cutoff)
+        ).limit(200)
+        val stale = mongo.find(query, CallHistoryDocument::class.java)
+        stale.forEach { doc ->
+            runCatching { missed(doc.id) }
+        }
+        return stale
+    }
+
+    /**
+     * Paged call history (newest first). [offset]/[since] are honoured by the Mongo
+     * query itself so "load more" returns real older pages; [resolveName] upgrades
+     * the stored peer label to the live display name when available.
+     */
+    fun history(
+        redId: String,
+        limit: Int,
+        offset: Int = 0,
+        since: Instant? = null,
+        resolveName: (String) -> String? = { null }
+    ): List<CallHistoryItem> {
+        val party = Criteria().orOperator(
+            Criteria.where("initiatorId").`is`(redId),
+            Criteria.where("targetId").`is`(redId)
+        )
+        val criteria = if (since != null) {
+            Criteria().andOperator(party, Criteria.where("startedAt").lt(since))
+        } else party
+        val query = Query(criteria)
+            .with(Sort.by(Sort.Direction.DESC, "startedAt"))
+            .skip(offset.coerceAtLeast(0).toLong())
+            .limit(limit.coerceIn(1, 100))
+        return mongo.find(query, CallHistoryDocument::class.java).map { call ->
+            val outgoing = call.initiatorId == redId
+            val peerId = if (outgoing) call.targetId else call.initiatorId
+            CallHistoryItem(
+                id = call.id,
+                peerId = peerId,
+                peerLabel = resolveName(peerId) ?: if (outgoing) call.targetLabel else call.initiatorId,
+                direction = if (outgoing) "OUTGOING" else "INCOMING",
+                type = call.type,
+                route = call.route,
+                status = call.status,
+                startedAt = call.startedAt,
+                answeredAt = call.answeredAt,
+                endedAt = call.endedAt,
+                mediaServerId = call.mediaServerId,
+                durationSeconds = call.durationSeconds,
+                qualityScore = call.qualityScore,
+                callSource = call.callSource,
+                groupId = call.groupId,
+                roomId = call.roomId,
+                participantIds = call.participantIds,
+                hadScreenShare = call.hadScreenShare,
+                wasRecorded = call.wasRecorded
+            )
+        }
+    }
+
+    /**
+     * Syncs client-side call rows created while offline into the call_history
+     * collection (upsert by id). Returns the number of rows stored. One malformed
+     * row never fails the batch; rows for other users are skipped.
+     */
+    fun upsertFromSync(redId: String, rows: List<Map<String, Any?>>): Int {
+        var stored = 0
+        for (row in rows) {
+            try {
+                val id = (row["id"] as? String)?.takeIf { it.isNotBlank() } ?: continue
+                val peer = (row["peerId"] as? String)?.takeIf { it.isNotBlank() } ?: continue
+                val outgoing = (row["direction"] as? String)?.equals("OUTGOING", ignoreCase = true) ?: true
+                val type = runCatching { CallType.valueOf(row["type"] as? String ?: "") }
+                    .getOrDefault(CallType.AUDIO_1V1)
+                val status = runCatching { CallStatus.valueOf(row["status"] as? String ?: "") }
+                    .getOrDefault(CallStatus.ENDED)
+                val startedAt = (row["startedAt"] as? Number)?.toLong()
+                    ?.let { Instant.ofEpochMilli(it) } ?: Instant.now()
+                val existing = mongo.findById(id, CallHistoryDocument::class.java)
+                if (existing != null) {
+                    if (existing.initiatorId != redId && existing.targetId != redId) continue
+                    existing.status = status
+                    existing.endedAt = (row["endedAt"] as? Number)?.toLong()
+                        ?.let { Instant.ofEpochMilli(it) } ?: existing.endedAt
+                    existing.durationSeconds = (row["durationSeconds"] as? Number)?.toLong()
+                        ?: existing.durationSeconds
+                    mongo.save(existing)
+                } else {
+                    mongo.save(
+                        CallHistoryDocument(
+                            id = id,
+                            initiatorId = if (outgoing) redId else peer,
+                            targetId = if (outgoing) peer else redId,
+                            targetLabel = (row["peerLabel"] as? String) ?: peer,
+                            type = type,
+                            route = CallRoute.RED,
+                            status = status,
+                            startedAt = startedAt
+                        )
+                    )
+                }
+                stored++
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        return stored
+    }
+
+    /**
+     * تأكيد الرنين الفعلي من جهاز المستلم (RINGING) — يُستخدم في مقاييس التسليم
+     * والتمييز بين «أُرسل الطلب» و«رنّ الجهاز». غير مُدمِّر: أول تأكيد يفوز.
+     */
+    fun markRinging(callId: String): CallHistoryDocument = update(callId) {
+        if (it.ringingConfirmedAt == null) it.ringingConfirmedAt = Instant.now()
+    }
+
+    private fun update(id: String, action: (CallHistoryDocument) -> Unit): CallHistoryDocument {
+        val doc = mongo.findById(id, CallHistoryDocument::class.java)
+            ?: throw NoSuchElementException("Call not found: $id")
+        action(doc)
+        return mongo.save(doc)
+    }
+}

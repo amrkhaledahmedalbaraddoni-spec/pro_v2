@@ -1,0 +1,14 @@
+# أرشيف ملفات Compose الميتة — 2026-09-26
+> نقل موثق (Move-Item) — لا حذف نهائي. الاسترجاع: انقل الملف إلى جذر RED_Ultimate.
+
+| الملف المؤرشف | المسار الأصلي | سبب الأرشفة | البديل القانوني |
+|---|---|---|---|
+| docker-compose.host-debug.yml | `RED_Ultimate/` | subset حرفي من `docker-compose.dev.yml` (نفس منافذ loopback الثلاثة) | `docker-compose.dev.yml` |
+| docker-compose.lan.yml | `RED_Ultimate/` | فارغ فعليا بعد إزالة Telecom (فقط extra_hosts) | الأساسي `docker-compose.yml` |
+| docker-compose.fix.yml | **بقي في الجذر عمدا** (طوارئ migration فقط) | — | — |
+| temp-dc.yml | `RED_Ultimate/` | ملف قديم (asterisk/postgres غير مثبت) يتصارع على 8080/8088 | لا بديل — ميت |
+| nginx-simple.conf | `RED_Ultimate/` | لا مرجع له في أي compose (ميت تماما) | `nginx.conf` |
+| monitoring-prometheus.yml | `monitoring/` | يستهدف خدمات غير موجودة (exporters/cadvisor/coturn-metrics) | `infrastructure/observability/prometheus/prometheus.yml` |
+
+التحقق بعد النقل: `docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet` ناجح.
+القاعدة: لا `Remove-Item` نهائي قبل 90 يوما ونسختين (W0_MODULE_BOUNDARIES.md).

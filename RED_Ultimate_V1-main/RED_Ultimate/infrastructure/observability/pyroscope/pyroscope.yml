@@ -1,0 +1,33 @@
+target: all
+
+server:
+  http_listen_port: 4040
+  grpc_listen_port: 9095
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+storage:
+  backend: filesystem
+  filesystem:
+    dir: /var/pyroscope/data
+
+pyroscopedb:
+  data_path: /var/pyroscope/data
+
+limits:
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 12
+  retention_period: 720h
+
+self_profiling:
+  disable_push: true
+
+multitenancy_enabled: false

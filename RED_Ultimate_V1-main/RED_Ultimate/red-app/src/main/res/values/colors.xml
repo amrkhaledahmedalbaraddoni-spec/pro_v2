@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    YOUNES Sovereign — Official Palette — LIGHT (values/) — Revamped
+
+    ═══════════════════════════════════════════════════════════════════
+    تحذير: ممنوع إضافة ألوان XML جديدة هنا.
+    ═══════════════════════════════════════════════════════════════════
+    مصدر الحقيقة الوحيد للألوان هو لوحة Younes في Compose:
+      ui/theme/RedTheme.kt (YounesPrimary #D4B25A ذهب سيادي؛ نهاري #8A6719،
+      YounesSuccess #14C79A للنجاح، YounesAccent #E0B551، YounesCobalt #4D9FE8…)
+      + ui/theme/SovereignThemeSystem.kt
+      + ui/theme/Color.kt (RedColorScheme) + ui/theme/RedColorScheme.kt
+      (RedBrandColors — مهمل: aliases نحو Younes).
+
+    هذا الملف aliases فقط نحو مقاطع younes_* القانونية أدناه (نفس قيم
+    Younes بالنص) — لا قيم hex جديدة للعلامة. أي لون علامة جديد يجب أن
+    يُعرَّف أولًا في RedTheme.kt ويُحرس بـ ColorContrastTest ثم يُشار إليه
+    هنا عبر @color/… فقط.
+
+    الاستثناء الوحيد: yns_overlay_dark/light شفافيات وظيفية (scrim) وليست
+    ألوان علامة، فتبقيان بقيمتيهما الشفافتين.
+-->
+<resources>
+    <!-- ═══ Canonical Younes source (LIGHT) — القيم الوحيدة المسموحة ═══ -->
+    <!-- كل hex أدناه من RedTheme.kt / redLightColorScheme / SovereignColors — لا غير -->
+    <color name="younes_primary">#8A6719</color>
+    <color name="younes_primary_glow">#D4B25A</color>
+    <color name="younes_primary_dark">#6E510F</color>
+    <color name="younes_primary_container">#FFE08B</color>
+    <color name="younes_on_primary_container">#221B00</color>
+    <color name="younes_success">#0A7A5E</color>
+    <color name="younes_success_glow">#14C79A</color>
+    <color name="younes_success_container">#A8F0D8</color>
+    <color name="younes_on_success_container">#002117</color>
+    <color name="younes_accent">#E0B551</color>
+    <color name="younes_accent_soft">#F0D48C</color>
+    <color name="younes_accent_dark">#8A6A0A</color>
+    <color name="younes_accent_container">#FFE08B</color>
+    <color name="younes_on_accent_container">#221B00</color>
+    <color name="younes_cobalt">#4D9FE8</color>
+    <color name="younes_cobalt_dark">#2E7DA8</color>
+    <color name="younes_cobalt_container">#BFE6F7</color>
+    <color name="younes_on_cobalt_container">#001F2A</color>
+    <color name="younes_rose">#F25C5C</color>
+    <color name="younes_ruby">#E03131</color>
+    <color name="younes_error">#D32F2F</color>
+    <color name="younes_error_container">#FFDAD6</color>
+    <color name="younes_on_error_container">#410002</color>
+    <color name="younes_background">#F7F8FA</color>
+    <color name="younes_surface">#FFFFFF</color>
+    <color name="younes_surface_variant">#E6E8EB</color>
+    <color name="younes_surface_container">#F0F2F5</color>
+    <color name="younes_surface_highest">#DDE1E6</color>
+    <color name="younes_on_background">#0F1B2D</color>
+    <color name="younes_on_surface">#0F1B2D</color>
+    <color name="younes_on_surface_variant">#5A6B7D</color>
+    <color name="younes_outline">#5A6B7D</color>
+    <color name="younes_border">#D0D7DE</color>
+    <color name="younes_on_brand">#06090F</color>
+    <!-- نص فوق الأساسي الذهبي الداكن #8A6719 — أبيض 5.2:1 (AA). في الليل
+         الأساسي ذهب فاتح فيكون النص داكنًا؛ لذلك on_primary منفصل عن on_brand. -->
+    <color name="younes_on_primary">#FFFFFF</color>
+    <color name="younes_void">#0A0F18</color>
+    <color name="younes_white">#FFFFFF</color>
+    <color name="younes_black">#000000</color>
+
+    <!-- ═══ Aliases: الأساسيات - الألوان الرئيسية ═══ -->
+    <!-- كان yns_primary أخضر #00B67A المنحرف؛ الآن ذهب Younes السيادي -->
+    <color name="yns_primary">@color/younes_primary</color>
+    <color name="yns_primary_dark">@color/younes_primary_dark</color>
+    <color name="yns_primary_light">@color/younes_primary_container</color>
+    <color name="yns_primary_variant">@color/younes_primary</color>
+
+    <!-- كان yns_secondary ذهب #F5A623 المنحرف؛ الآن ذهب Younes الموحد -->
+    <color name="yns_secondary">@color/younes_accent</color>
+    <color name="yns_secondary_dark">@color/younes_accent_dark</color>
+    <color name="yns_secondary_light">@color/younes_accent_soft</color>
+    <color name="yns_secondary_variant">@color/younes_accent</color>
+
+    <!-- دور الأزرق الملكي — كان #007AFF المنحرف -->
+    <color name="yns_accent">@color/younes_cobalt</color>
+    <color name="yns_accent_dark">@color/younes_cobalt_dark</color>
+    <color name="yns_accent_light">@color/younes_cobalt_container</color>
+
+    <!-- ═══ Aliases: الخلفية ═══ -->
+    <color name="yns_background">@color/younes_background</color>
+    <color name="yns_background_variant">@color/younes_surface_container</color>
+    <color name="yns_surface">@color/younes_surface</color>
+    <color name="yns_surface_light">@color/younes_background</color>
+    <color name="yns_surface_elevated">@color/younes_surface_container</color>
+
+    <!-- ═══ Aliases: النص ═══ -->
+    <!-- yns_on_primary كان أبيض على أخضر فاتح (راسب)؛ الآن أبيض على الذهب
+         الداكن #8A6719 = 5.2:1 (AA). في الليل ينقلب إلى داكن 9.45:1. -->
+    <color name="yns_on_primary">@color/younes_on_primary</color>
+    <color name="yns_on_secondary">@color/younes_on_brand</color>
+    <color name="yns_on_background">@color/younes_on_background</color>
+    <color name="yns_on_surface">@color/younes_on_surface</color>
+    <color name="yns_text_primary">@color/younes_on_surface</color>
+    <color name="yns_text_secondary">@color/younes_on_surface_variant</color>
+    <color name="yns_text_tertiary">@color/younes_on_surface_variant</color>
+    <color name="yns_text_disabled">@color/younes_border</color>
+
+    <!-- ═══ Aliases: الحدود ═══ -->
+    <color name="yns_outline">@color/younes_outline</color>
+    <color name="yns_border">@color/younes_border</color>
+    <color name="yns_border_light">@color/younes_border</color>
+    <color name="yns_divider">@color/younes_border</color>
+
+    <!-- ═══ Aliases: الحالات ═══ -->
+    <color name="yns_success">@color/younes_success</color>
+    <color name="yns_success_light">@color/younes_success_glow</color>
+    <color name="yns_success_background">@color/younes_success_container</color>
+
+    <!-- الأحمر للدور الشرعي الوحيد Danger/Error -->
+    <color name="yns_error">@color/younes_error</color>
+    <color name="yns_error_light">@color/younes_rose</color>
+    <color name="yns_error_background">@color/younes_error_container</color>
+
+    <!-- كان yns_warning ذهب #F59E0B المنحرف مع أبيض 2.14 راسبًا؛ الآن ذهب Younes مع داكن 10.34 -->
+    <color name="yns_warning">@color/younes_accent</color>
+    <color name="yns_warning_light">@color/younes_accent_soft</color>
+    <color name="yns_warning_background">@color/younes_accent_container</color>
+
+    <color name="yns_info">@color/younes_cobalt_dark</color>
+    <color name="yns_info_light">@color/younes_cobalt</color>
+    <color name="yns_info_background">@color/younes_cobalt_container</color>
+
+    <!-- ═══ Aliases: ثوابت العلامة ═══ -->
+    <color name="yns_launcher_background">@color/younes_black</color>
+    <color name="younes_launcher_background">@color/younes_black</color>
+    <color name="younes_obsidian">@color/younes_void</color>
+    <color name="younes_emerald">@color/younes_success</color>
+    <color name="younes_sovereign_gold">@color/younes_accent</color>
+    <color name="younes_gold">@color/younes_accent</color>
+
+    <!-- الشفافية — شفافيات وظيفية مستثناة من قاعدة الـaliases (ليست ألوان علامة) -->
+    <color name="yns_overlay_dark">#99000000</color>
+    <color name="yns_overlay_light">#66FFFFFF</color>
+
+    <!-- RTL Support Colors -->
+    <color name="yns_start">@color/younes_primary</color>
+    <color name="yns_end">@color/younes_accent</color>
+
+    <!-- Light Theme Elevations -->
+    <color name="yns_elevation_0">@color/younes_surface</color>
+    <color name="yns_elevation_1">@color/younes_surface</color>
+    <color name="yns_elevation_2">@color/younes_background</color>
+    <color name="yns_elevation_3">@color/younes_surface_container</color>
+    <color name="yns_elevation_4">@color/younes_surface_variant</color>
+
+    <!-- Status Bar &amp; Navigation Bar -->
+    <color name="yns_status_bar">@color/younes_background</color>
+    <color name="yns_navigation_bar">@color/younes_background</color>
+</resources>

@@ -1,0 +1,51 @@
+param(
+    [ValidateRange(1024, 65535)][int]$HttpPort = 8088,
+    [switch]$TrustCurrentNetwork,
+    [switch]$EnableMediaPorts
+)
+$ErrorActionPreference = 'Stop'
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"", '-HttpPort', $HttpPort)
+    if ($TrustCurrentNetwork) { $arguments += '-TrustCurrentNetwork' }
+    if ($EnableMediaPorts) { $arguments += '-EnableMediaPorts' }
+    Start-Process powershell.exe -Verb RunAs -ArgumentList $arguments
+    Write-Host 'Requested administrator permission in a new PowerShell window.'
+    exit 0
+}
+
+$profiles = @(Get-NetConnectionProfile | Where-Object { $_.IPv4Connectivity -ne 'Disconnected' })
+$public = @($profiles | Where-Object NetworkCategory -eq 'Public')
+if ($public.Count -gt 0 -and -not $TrustCurrentNetwork) {
+    throw "The active network is Public. Rerun with -TrustCurrentNetwork only if this is your trusted private LAN/hotspot."
+}
+if ($TrustCurrentNetwork) {
+    $public | ForEach-Object { Set-NetConnectionProfile -InterfaceIndex $_.InterfaceIndex -NetworkCategory Private }
+}
+
+function Ensure-Rule([string]$Name, [string]$Protocol, [string]$Ports, [string]$RemoteAddress = 'Any') {
+    Get-NetFirewallRule -DisplayName $Name -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+    New-NetFirewallRule -DisplayName $Name -Direction Inbound -Protocol $Protocol -LocalPort $Ports -RemoteAddress $RemoteAddress -Action Allow -Profile Private | Out-Null
+    Write-Host "FIREWALL_RULE_READY $Name $Protocol/$Ports remote=$RemoteAddress Private"
+}
+@('RED Local HTTPS-Alpha','RED TURN','RED SFU RTP','RED TURN Relay') | ForEach-Object {
+    Get-NetFirewallRule -DisplayName $_ -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+}
+Ensure-Rule 'YOUNES Local HTTP Alpha' 'TCP' "$HttpPort"
+if ($EnableMediaPorts) {
+    # P0 2026-09-27: الهاتف كان يصل API (8088) ويفشل في المكالمات/الدفع —
+    # لا قواعد واردة لمنافذ TURN/SFU/ntfy. TCP إلزامي (TURNS 5349، SFU إشارة
+    # 4000، RTC fallback، ntfy) بجانب UDP.
+    Ensure-Rule 'YOUNES TURN' 'UDP' '3478'
+    Ensure-Rule 'YOUNES TURN TCP' 'TCP' '3478,5349'
+    Ensure-Rule 'YOUNES TURN UDP' 'UDP' '3478,5349'
+    Ensure-Rule 'YOUNES SFU Signal' 'TCP' '4000'
+    Ensure-Rule 'YOUNES SFU RTP' 'UDP' '40000-40100'
+    Ensure-Rule 'YOUNES SFU RTC TCP' 'TCP' '40000-40100'
+    Ensure-Rule 'YOUNES TURN Relay' 'UDP' '45000-45050'
+    Ensure-Rule 'YOUNES TURN Relay TCP' 'TCP' '45000-45050'
+    Ensure-Rule 'YOUNES ntfy Push' 'TCP' '2586'
+    # P0 2026-09-27: UDP discovery layer (server-announcer.py) — silent without this rule.
+    Ensure-Rule 'YOUNES Announcer' 'UDP' '8095'
+}
+Write-Host 'YOUNES_WINDOWS_LAN_READY'

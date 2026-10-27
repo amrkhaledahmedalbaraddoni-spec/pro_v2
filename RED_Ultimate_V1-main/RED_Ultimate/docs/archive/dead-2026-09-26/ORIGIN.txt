@@ -1,0 +1,40 @@
+# أرشيف الميت المؤكد — 2026-09-27
+> نقل موثق (Move-Item) بعد تدقيق صفر-مراجع لكل ملف — لا حذف نهائي. الاسترجاع: انقل الملف إلى مساره الأصلي أدناه.
+> التحقق بعد النقل: tsc صفر + vite build + compileDebugKotlin + backend test كلها خضراء.
+
+## admin/ (25 ملفا من admin_dashboard/)
+| الملف المؤرشف | المسار الأصلي | السبب |
+|---|---|---|
+| nginx.conf | `admin_dashboard/nginx.conf` | مكرر مُعلن (الحي `dashboard.nginx.conf`) |
+| src__tailwind.css | `admin_dashboard/src/tailwind.css` | CSS غير مستورد (`index.tsx` يستورد styles.css فقط) |
+| src__styles__globals.css | `admin_dashboard/src/styles/globals.css` | CSS غير مستورد |
+| src__components__Chart.tsx | `.../components/Chart.tsx` | wrapper echarts بلا مستورد (الحي recharts مباشرة) |
+| src__components__OnlinePresenceCard.tsx | `...` | بلا مستورد |
+| src__components__UltimateEmpty.tsx | `...` | الصفحات تستخدم `_shared.EmptyState` |
+| src__components__ErrorBoundary.tsx | `...` | `__root.tsx` يعرّف errorComponent inline |
+| src__components__ui__command.tsx | `...` | primitive بلا استخدام مباشر |
+| src__components__ui__toaster.tsx | `...` | `<Toaster/>` غير مُrender (الحي useToast) |
+| src__components__ui__index.ts | `...` | barrel بلا مستوردين |
+| mock-backend.cjs / server.cjs | `admin_dashboard/` | mock/server قديمة (الحي dev-mock-*) |
+| dev-server__* (3) | `admin_dashboard/dev-server/` | SQLite dev-server قديم |
+| update-*.cjs (7) | `admin_dashboard/` | patches لمرة واحدة بمسارات صلبة |
+| admin_build.txt / final-admin-check.log / role-check-output.txt | `admin_dashboard/` | سجلات بناء |
+
+## red-app/ (4 ملفات)
+| الملف | المسار الأصلي | السبب |
+|---|---|---|
+| RedDashboard.kt (3940 سطر) | `.../ui/RedDashboard.kt` | legacy صفر مستدعين (MainActivity → ModernRedDashboard) |
+| CallsScreens.kt | `.../ui/CallsScreens.kt` | مكرر حرفي ميت |
+| CallsScreen.kt | `.../ui/screens/CallsScreen.kt` | مهمل موسوم، صفر استدعاءات |
+| update-animations.cjs | `red-app/update-animations.cjs` | patch لمرة واحدة |
+
+## backend/ (1)
+| IronSyncService.kt | `.../services/IronSyncService.kt` | `@Service` غير محقون في أي مكان |
+
+## media-sfu/src/ (15 ملفا)
+مجلد TS كامل (server/auth/config/e2ee/grpc/livestream/media/protocol/recording/router/telemetry/transport/types/worker + proto) — خارج بناء Docker (الحي `server.js + protocol.js` فقط).
+
+## سجلات docs (13) → `docs/reports/2026-08-20/raw/`
+سجلات تشخيص مكالمات 2026-08-20 — مخالفة قاعدة docs (غير-md) فُوحّد مكانها، لم تُحذف.
+
+القاعدة: لا `Remove-Item` نهائي قبل 90 يوما ونسختين.

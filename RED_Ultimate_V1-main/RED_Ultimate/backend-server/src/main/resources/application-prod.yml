@@ -1,0 +1,74 @@
+# 🔒 RED Backend - Production Security Configuration
+# بيئة الإنتاج: HTTPS إلزامي + TLS 1.3 + حظر cleartext
+
+spring:
+  profiles:
+    active: prod
+  application:
+    name: red-backend-sovereign
+
+server:
+  port: 443
+  servlet:
+    context-path: /api
+  error:
+    include-stacktrace: never
+    include-message: always
+  ssl:
+    # الشهادة والمفتاح الخاص — يُمرر عبر متغيرات البيئة
+    key-store: ${RED_KEYSTORE_PATH:/etc/red/red-backend.p12}
+    key-store-password: ${RED_KEYSTORE_PASSWORD:}
+    key-store-type: PKCS12
+    key-alias: red-backend
+    # إلزام TLS 1.3 و 1.2 (تعطيل SSL/TLS أقدم)
+    enabled-protocols: TLSv1.3,TLSv1.2
+    # Cipher suites آمنة
+    ciphers: TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    enabled: true
+
+# تكوين RED الخاص
+red:
+  security:
+    # إلزام HTTPS في production
+    enforce-https: true
+    # منفذ HTTP منفصل (للـ health checks و redirects فقط)
+    cleartext-port: 8088
+    # CORS — قائمة النطاقات المسموحة
+    cors-origins: https://younes.red,https://admin.younes.red
+    # TLS Pinning pins (SHA-256 من public certificate)
+    tls-pins: |
+      sha256/C5+lpZ7tcVwmwQIMcRtPbV8=
+      sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    # ديتلز الشهادة للـ HPST header
+    hsts-max-age: 31536000
+    hsts-include-subdomains: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging — production = مستوى INFO فقط
+logging:
+  level:
+    root: INFO
+    com.red: DEBUG
+  file:
+    name: /var/log/red-backend/red.log
+    max-size: 100MB
+    max-history: 30
+
+# أمان قاعدة البيانات
+spring.datasource.hikari:
+  maximum-pool-size: 10
+  minimum-idle: 5
+  idle-timeout: 600000
+  max-lifetime: 1800000

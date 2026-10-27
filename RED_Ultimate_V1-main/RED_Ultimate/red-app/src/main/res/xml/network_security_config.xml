@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ═══════════════════════════════════════════════════════════════════
+     RELEASE / PRODUCTION — Network Security Policy
+     • Default is HTTPS-only (base-config cleartext=false).
+     • Cleartext HTTP is permitted ONLY for private LAN via <domain-config>
+       below (10/8, 172.16/12, 192.168/16 + localhost/emulator/.local).
+     • Android matches IP literals in <domain> exactly (no CIDR), so raw
+       scanned LAN IPs that miss the listed entries are still gated in code:
+       ServerEndpoint.isLocalCleartextHost rejects cleartext for any
+       non-local host (public internet) with a literal-IP check.
+     • App-level hardening still enforced in code: YounesServerSignature
+       on the wire + CertificatePinner on SecureOkHttpClient when TLS is used.
+     • User CAs trusted ONLY when debuggable (debug builds). Release keeps
+       system-only trust anchors.
+     ═══════════════════════════════════════════════════════════════════ -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Cleartext is not granted in release at all: <domain-config cleartextTrafficPermitted>
+         cannot express CIDR, so a literal-IP allow-list here (10.0.0.0, 192.168.0.0 …) was
+         both incomplete and, worse, a plaintext door in production builds. Development keeps
+         LAN cleartext through src/debug/res/xml/network_security_config.xml, and ServerEndpoint
+         .isLocalCleartextHost stays the code-side gate. -->
+
+    <!-- User CAs trusted only when debuggable (debug builds). Release keeps system-only. -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!-- Example per-domain strict policy for RED server (when RED_TLS_PINS is set via BuildConfig):
+         Add pin-set here for defense-in-depth beyond OkHttp CertificatePinner -->
+</network-security-config>

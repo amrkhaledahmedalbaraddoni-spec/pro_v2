@@ -1,0 +1,17 @@
+# أرشيف الوحدات المرجعية — 2026-09-26
+> نقل موثق (Move-Item) — لا حذف نهائي. الاسترجاع: انقل المجلد إلى جذر RED_Ultimate.
+> الأساس: البوابتان خضراوان (تطبيق 341/0 + باك 335/0) قبل النقل، وهذه الوحدات خارج
+> `settings.gradle.kts` (لا `include` لها) فلا تدخل البناء — مثبت بالفحص.
+
+| المجلد المؤرشف | المسار الأصلي | المحتوى | القرار |
+|---|---|---|---|
+| core/ | `RED_Ultimate/core/` | 523 ملفا (1.6MB) — 7 وحدات Signal مرجعية | مرجع ميت — يُستخرج منه إصلاح محدد فقط بعد اختبار |
+| feature/ | `RED_Ultimate/feature/` | 658 ملفا (6.8MB) — camera/media-send/registration | مرجع ميت — التسجيل القانوني في red-app+backend |
+| lib/ | `RED_Ultimate/lib/` | 1015 ملفا (5.5MB) — ~18 مكتبة Signal | منجم مرجعي — لا يُبنى |
+| janus/ | `RED_Ultimate/janus/` | 3 ملفات (Dockerfile/cfg) — بلا README | طبقة PSTN يتيمة (لا خدمة في الكومبوز) |
+| kamailio/ | `RED_Ultimate/kamailio/` | 3 ملفات — بلا README | طبقة PSTN يتيمة (مع janus أعلاه) |
+| voicebridge/ | `RED_Ultimate/voicebridge/` | 22 ملفا — مشروع Maven مستقل (16 java) | لا يُبنى مع Gradle — قرار معماري معلق: media-sfu هو البديل؟ |
+| wire-handler/ | `RED_Ultimate/wire-handler/` | 16 ملفا + jar مرتكب | بناء مستقل — تحقق SHA قبل أي استعمال |
+
+التحقق بعد النقل: `:app:compileDebugKotlin` + `backend test` أخضر (شُغّلا بعد النقل).
+القاعدة: لا `Remove-Item` نهائي قبل 90 يوما ونسختين (W0_MODULE_BOUNDARIES.md).

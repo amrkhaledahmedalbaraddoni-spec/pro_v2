@@ -1,0 +1,1043 @@
+package com.red.server.admin.controller
+
+import com.red.server.admin.model.*
+import com.red.server.admin.repository.*
+import com.red.server.admin.service.AdminService
+import com.red.server.auth.model.UserAccount
+import com.red.server.auth.repository.UserAccountRepository
+import com.red.server.auth.RedIdGenerator
+import com.red.server.auth.OneTimePreKeyService
+import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.data.mongodb.core.MongoTemplate
+import org.springframework.data.mongodb.core.query.Criteria
+import org.springframework.data.mongodb.core.query.Query
+import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.http.ResponseEntity
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.security.core.Authentication
+import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.*
+import java.time.Instant
+import java.util.UUID
+
+/**
+ * 🛡️ Admin V2 Controller - APIs شاملة للوحة الإدارة
+ * يغطي: Audit, Analytics, Users, Calls, Reports, Media, Security, Announcements, Backups
+ */
+@RestController
+@RequestMapping("/api/admin")
+class AdminV2Controller(
+    private val service: AdminService,
+    private val users: UserAccountRepository,
+    private val auditLog: AdminAuditLogRepository,
+    private val analytics: SystemAnalyticsRepository,
+    private val health: SystemHealthRepository,
+    private val adminSessions: AdminSessionRepository,
+    private val featureFlags: FeatureFlagRepository,
+    private val userReports: UserReportRepository,
+    private val announcements: SystemAnnouncementRepository,
+    private val preKeys: OneTimePreKeyService,
+    private val backups: BackupHistoryRepository,
+    private val passwordEncoder: PasswordEncoder,
+    private val redIdGenerator: RedIdGenerator,
+    private val jdbcTemplate: JdbcTemplate,
+    private val mongoTemplate: MongoTemplate,
+    private val redisTemplate: StringRedisTemplate
+) {
+    private val log = LoggerFactory.getLogger(AdminV2Controller::class.java)
+    // ━━━━━━━━━━━━━━━━ 📊 Dashboard & Analytics ━━━━━━━━━━━━━━━━
+    @GetMapping("/dashboard/summary")
+    fun getDashboardSummary(authentication: Authentication): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val analytics = service.calculateCurrentAnalytics()
+        val pendingReports = service.countPendingReports()
+        val recentCritical = service.getRecentCritical()
+        val degradedHealth = service.getDegradedComponents()
+        val activeBackups = service.getRecentBackups().filter { it.status == "IN_PROGRESS" }.size
+
+        return ResponseEntity.ok(mapOf(
+            "analytics" to analytics,
+            "pendingReports" to pendingReports,
+            "recentCriticalAlerts" to recentCritical.size,
+            "degradedComponents" to degradedHealth.size,
+            "activeBackups" to activeBackups,
+            "generatedAt" to Instant.now()
+        ))
+    }
+
+    @GetMapping("/analytics")
+    fun getAnalytics(
+        @RequestParam start: String,
+        @RequestParam end: String
+    ): ResponseEntity<List<SystemAnalytics>> {
+        val startDate = java.time.LocalDate.parse(start)
+        val endDate = java.time.LocalDate.parse(end)
+        return ResponseEntity.ok(service.getAnalytics(startDate, endDate))
+    }
+
+    @GetMapping("/health")
+    fun getHealth(): ResponseEntity<List<SystemHealth>> =
+        ResponseEntity.ok(service.getRecentHealth())
+
+    // ─━━━━━━━━━━━━━━━ 📈 Dashboard Surfaces للوحة (2026-09-26) ━━━━━━━━━━━━━━━━
+    // كانت الصفحة تستدعي /api/admin/dashboard/{metrics,charts} و /system/health و /alerts
+    // وهي غير موجودة في أي controller — تُستكمل هنا بأشكال مطابقة لما تستهلكه الواجهة
+    // وببيانات حية من SystemAnalytics/SystemHealth لا أصفار وهمية.
+
+    /** مقاييس بطاقات الداشبورد (totalUsers/activeUsers/... + نسب التغير) — يعيد 404-compatible Map دائمًا. */
+    @GetMapping("/dashboard/metrics")
+    fun getDashboardMetrics(): ResponseEntity<Map<String, Any?>> {
+        val current = analytics.findTop30ByOrderByStatDateDesc()
+        val today = current.firstOrNull()
+        val yesterday = current.getOrNull(1)
+        fun change(now: Int?, prev: Int?): Double? {
+            if (now == null || prev == null || prev == 0) return null
+            return ((now - prev).toDouble() / prev.toDouble()) * 100.0
+        }
+        val totalUsers = users.count()
+        return ResponseEntity.ok(
+            mapOf(
+                "totalUsers" to totalUsers,
+                "usersChange" to change(today?.totalUsers, yesterday?.totalUsers),
+                "activeUsers" to (today?.activeUsersDau ?: 0),
+                "activeUsersChange" to change(today?.activeUsersDau, yesterday?.activeUsersDau),
+                "messages" to (today?.messagesSent ?: 0),
+                "messagesChange" to change(today?.messagesSent, yesterday?.messagesSent),
+                "calls" to (today?.callsTotal ?: 0),
+                "callsChange" to change(today?.callsTotal, yesterday?.callsTotal),
+                "channels" to (today?.groupsActive ?: 0),
+                "channelsChange" to change(today?.groupsActive, yesterday?.groupsActive),
+                "revenue" to null, // لا فوترة في RED — تُعرض —
+                "revenueChange" to null,
+                "mau" to (today?.activeUsersMau ?: 0),
+                "mauChange" to change(today?.activeUsersMau, yesterday?.activeUsersMau),
+                "pendingApprovals" to (today?.pendingApprovals ?: 0),
+                "bannedUsers" to (today?.bannedUsers ?: 0),
+                "securityAlerts" to (today?.securityAlerts ?: 0)
+            )
+        )
+    }
+
+    /** نقاط الرسوم البيانية (date/users/newUsers/messages/calls/dau/mau) — تصاعدياً كما تستهلكه recharts. */
+    @GetMapping("/dashboard/charts")
+    fun getDashboardCharts(): ResponseEntity<List<Map<String, Any?>>> {
+        val rows = analytics.findTop30ByOrderByStatDateDesc().asReversed() // تصاعدي زمنياً
+        return ResponseEntity.ok(
+            rows.map { a ->
+                mapOf(
+                    "date" to a.statDate.toString(),
+                    "users" to a.totalUsers,
+                    "newUsers" to a.newUsers,
+                    "messages" to a.messagesSent,
+                    "calls" to a.callsTotal,
+                    "revenue" to 0,
+                    "dau" to a.activeUsersDau,
+                    "mau" to a.activeUsersMau
+                )
+            }
+        )
+    }
+
+    /** صحة النظام — صفحة Dashboard تتوقع مصفوفة {component, status, cpu/memory/disk}. */
+    @GetMapping("/system/health")
+    fun getSystemHealth(): ResponseEntity<List<SystemHealth>> =
+        ResponseEntity.ok(service.getRecentHealth())
+
+    /** التنبيهات الحية: critical alerts من السجل + مكوّنات متدهورة — بصيغة {alerts:[...]} التي تقبلها الصفحة. */
+    @GetMapping("/alerts")
+    fun getRecentAlerts(): ResponseEntity<Map<String, Any?>> {
+        val critical = service.getRecentCritical()
+        val degraded = service.getDegradedComponents()
+        val items = critical.map { a ->
+            mapOf(
+                "id" to a.id.toString(),
+                "severity" to (a.severity ?: "critical"),
+                "title" to (a.action ?: "SECURITY_EVENT"),
+                "message" to (a.description ?: a.action ?: "حدث حرج"),
+                "timestamp" to a.createdAt.toString()
+            )
+        } + degraded.map { h ->
+            mapOf(
+                "id" to "health-" + h.id.toString(),
+                "severity" to "warning",
+                "title" to ("مكوّن متدهور: " + h.component),
+                "message" to (h.details ?: ("status=" + h.status)),
+                "timestamp" to h.lastCheckAt.toString()
+            )
+        }
+        return ResponseEntity.ok(mapOf("alerts" to items))
+ }
+
+    @GetMapping("/metrics/realtime")
+    fun getRealtimeMetrics(): ResponseEntity<Map<String, Any>> {
+        val analytics = service.calculateCurrentAnalytics()
+        val health = service.getRecentHealth()
+        return ResponseEntity.ok(mapOf(
+            "users" to analytics,
+            "health" to health.associateBy { it.component },
+            "timestamp" to Instant.now()
+        ))
+    }
+
+    // ━━━━━━━━━━━━━━━━ 👥 Users Management ━━━━━━━━━━━━━━━━
+    @GetMapping("/users")
+    fun getUsers(
+        @RequestParam(required = false) page: Int = 0,
+        @RequestParam(required = false) size: Int = 50,
+        @RequestParam(required = false) status: String? = null,
+        @RequestParam(required = false) search: String? = null,
+        @RequestParam(required = false) role: String? = null,
+        @RequestParam(required = false) sortBy: String? = "createdAt",
+        @RequestParam(required = false) sortDir: String? = "desc",
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val pageable = PageRequest.of(page, size, Sort.Direction.fromString(sortDir ?: "desc"), sortBy ?: "createdAt")
+        val allUsers = users.findAll(pageable)
+
+        val filtered = allUsers.content.filter { user ->
+            (status == null || user.status.name == status) &&
+            (role == null || user.role.name == role) &&
+            (search == null || user.username.contains(search, ignoreCase = true) ||
+                user.displayName.contains(search, ignoreCase = true) ||
+                user.redId.contains(search, ignoreCase = true))
+        }
+        // الترشيح بعد الجلب (المستودع خارج النطاق): عند وجود مرشحات يجب أن
+        // تعكس الأرقام الصفحة المرشحة لا الصفحة الخام — وإلا تكذب اللوحة.
+        val hasFilters = status != null || role != null || search != null
+        val totalElements = if (hasFilters) {
+            // تقريب صادق لصفحة واحدة: لا ندّعي إجمالياً لا نملكه.
+            (page.toLong() * size + filtered.size)
+        } else allUsers.totalElements
+        val totalPages = if (hasFilters) {
+            if (size > 0) ((page.toLong() * size + filtered.size + size - 1) / size).toInt() else 0
+        } else allUsers.totalPages
+
+        val adminId = UUID.fromString(authentication.name)
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USERS_LISTED",
+            category = "USER",
+            description = "Listed users with filters: status=$status, role=$role, search=$search"
+        )
+
+        return ResponseEntity.ok(mapOf(
+            "content" to filtered.map { user -> mapOf(
+                "id" to user.id,
+                "redId" to user.redId,
+                "username" to user.username,
+                "displayName" to user.displayName,
+                "email" to "${user.username}@red.internal",
+                "phone" to "",
+                "status" to user.status.name,
+                "role" to user.role.name,
+                "createdAt" to user.createdAt,
+                "approvedAt" to user.approvedAt,
+                "lastSeen" to user.lastSeen,
+                "lastLogin" to user.lastSeen,
+                "avatarColor" to (user.avatarColor ?: "#00E59B"),
+                "avatarUrl" to user.avatarUrl,
+                "bio" to user.bio
+            )},
+            "page" to page,
+            "size" to size,
+            "totalElements" to totalElements,
+            "totalPages" to totalPages
+        ))
+    }
+
+    @GetMapping("/users/{userId}")
+    fun getUserDetail(
+        @PathVariable userId: String,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val user = users.findById(UUID.fromString(userId)).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+        val adminId = UUID.fromString(authentication.name)
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_DETAIL_VIEWED",
+            category = "USER",
+            targetType = "USER",
+            targetId = userId
+        )
+        return ResponseEntity.ok(mapOf<String, Any>(
+            "id" to (user.id?.toString() ?: ""),
+            "redId" to user.redId,
+            "username" to user.username,
+            "displayName" to user.displayName,
+            "status" to user.status.name,
+            "role" to user.role.name,
+            "createdAt" to user.createdAt,
+            "approvedAt" to (user.approvedAt ?: Instant.MIN),
+            "approvedBy" to (user.approvedBy?.toString() ?: ""),
+            "rejectionReason" to (user.rejectionReason ?: ""),
+            "lastSeen" to (user.lastSeen ?: Instant.MIN)
+        ))
+    }
+
+    @PostMapping("/users")
+    fun createUser(
+        @RequestBody request: CreateUserAdminRequest,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val username = request.username.trim().lowercase()
+        val displayName = request.displayName.trim()
+        val password = request.password
+
+        if (username.length < 3 || username.length > 32 || !username.matches(Regex("^[a-zA-Z0-9_.]{3,32}$"))) {
+            return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "اسم المستخدم يجب أن يتكون من 3 إلى 32 حرفاً إنجليزياً أو رقماً أو نقطة أو شرطة سفلية"))
+        }
+        if (displayName.length < 2 || displayName.length > 100) {
+            return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "الاسم المعروض يجب أن يتكون من 2 إلى 100 حرف"))
+        }
+        if (password.length < 6 || password.length > 128) {
+            return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "كلمة المرور يجب أن تتكون من 6 إلى 128 حرفاً"))
+        }
+        if (users.existsByUsernameIgnoreCase(username)) {
+            return ResponseEntity.status(409).body(mapOf("success" to false, "error" to "اسم المستخدم مسجل مسبقاً في النظام"))
+        }
+
+        val finalRedId = if (!request.redId.isNullOrBlank()) {
+            val custom = request.redId.trim()
+            if (users.existsByRedId(custom)) {
+                return ResponseEntity.status(409).body(mapOf("success" to false, "error" to "معرّف RED ID ($custom) مستخدم بالفعل"))
+            }
+            custom
+        } else {
+            redIdGenerator.next()
+        }
+
+        val accountRole = runCatching {
+            com.red.server.auth.model.AccountRole.valueOf(request.role?.uppercase() ?: "USER")
+        }.getOrDefault(com.red.server.auth.model.AccountRole.USER)
+
+        val accountStatus = runCatching {
+            com.red.server.auth.model.AccountStatus.valueOf(request.status?.uppercase() ?: "APPROVED")
+        }.getOrDefault(com.red.server.auth.model.AccountStatus.APPROVED)
+
+        val newUser = UserAccount(
+            redId = finalRedId,
+            username = username,
+            passwordHash = requireNotNull(passwordEncoder.encode(password)) { "PasswordEncoder returned null" },
+            displayName = displayName,
+            status = accountStatus,
+            role = accountRole,
+            bio = request.bio?.take(280),
+            avatarColor = request.avatarColor ?: "#00E59B"
+        )
+
+        if (accountStatus == com.red.server.auth.model.AccountStatus.APPROVED) {
+            newUser.approvedAt = Instant.now()
+            newUser.approvedBy = adminId
+        }
+
+        val saved = users.save(newUser)
+
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_CREATED_BY_ADMIN",
+            category = "USER",
+            targetType = "USER",
+            targetId = saved.id.toString(),
+            description = "Created user ${saved.username} with role ${saved.role.name} and status ${saved.status.name}",
+            severity = "INFO"
+        )
+
+        return ResponseEntity.status(201).body(mapOf(
+            "success" to true,
+            "user" to mapOf(
+                "id" to saved.id,
+                "redId" to saved.redId,
+                "username" to saved.username,
+                "displayName" to saved.displayName,
+                "role" to saved.role.name,
+                "status" to saved.status.name,
+                "avatarColor" to (saved.avatarColor ?: "#00E59B"),
+                "createdAt" to saved.createdAt
+            )
+        ))
+    }
+
+    @PostMapping("/users/{userId}/approve")
+    fun approveUser(
+        @PathVariable userId: String,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val user = users.findById(UUID.fromString(userId)).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+        user.status = com.red.server.auth.model.AccountStatus.APPROVED
+        user.approvedAt = Instant.now()
+        user.approvedBy = adminId
+        users.save(user)
+
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_APPROVED",
+            category = "USER",
+            targetType = "USER",
+            targetId = userId,
+            description = "Approved user ${user.username}"
+        )
+        return ResponseEntity.ok(mapOf("success" to true, "user" to mapOf("id" to user.id, "status" to user.status.name)))
+    }
+
+    @PostMapping("/users/{userId}/reject")
+    fun rejectUser(
+        @PathVariable userId: String,
+        @RequestBody(required = false) body: Map<String, String?> = emptyMap(),
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val user = users.findById(UUID.fromString(userId)).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+        user.status = com.red.server.auth.model.AccountStatus.REJECTED
+        user.rejectionReason = body["reason"]
+        users.save(user)
+
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_REJECTED",
+            category = "USER",
+            targetType = "USER",
+            targetId = userId,
+            description = "Rejected user ${user.username}: ${body["reason"]}"
+        )
+        return ResponseEntity.ok(mapOf("success" to true))
+    }
+
+    /**
+     * إجراء جماعي على مستخدمين (P0 من تدقيق اللوحة): كانت الصفحة تستدعي
+     * POST /api/admin/users/bulk غير الموجود → فشل كل عملية جماعية.
+     * الأفعال المسموحة: approve/reject/ban/unban/delete + مدة اختيارية للـban.
+     * كل عملية تُسجَّل تدقيقًا فرديًا حتى يبقى الأثر قابلًا للتتبع.
+     */
+    @PostMapping("/users/bulk")
+    fun bulkUsersAction(
+        @RequestBody body: Map<String, Any?>,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val adminUsername = authentication.principal.toString()
+        val action = (body["action"] as? String)?.trim()?.lowercase()
+            ?: return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "action required"))
+        @Suppress("UNCHECKED_CAST")
+        val ids = (body["ids"] as? List<String>)
+            ?: return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "ids required"))
+        if (ids.isEmpty()) return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "ids empty"))
+        if (ids.size > 200) return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "too many ids (max 200)"))
+        val reason = body["reason"] as? String
+        val durationDays = (body["durationDays"] as? Number)?.toLong()
+        val isHard = (body["hard"] as? Boolean) ?: false
+
+        val actions = setOf("approve", "reject", "ban", "unban", "delete")
+        if (action !in actions) {
+            return ResponseEntity.badRequest().body(mapOf("success" to false, "error" to "unknown action: $action"))
+        }
+
+        var ok = 0
+        var failed = 0
+        val errors = mutableListOf<String>()
+        for (raw in ids) {
+            val id = runCatching { UUID.fromString(raw) }.getOrElse { failed++; errors.add("$raw: bad uuid"); continue }
+            val user = users.findById(id).orElse(null)
+            if (user == null) { failed++; errors.add("$raw: not found"); continue }
+            try {
+                when (action) {
+                    "approve" -> user.status = com.red.server.auth.model.AccountStatus.APPROVED
+                    "reject" -> user.status = com.red.server.auth.model.AccountStatus.REJECTED
+                    "ban" -> user.status = com.red.server.auth.model.AccountStatus.BANNED
+                    "unban" -> user.status = com.red.server.auth.model.AccountStatus.APPROVED
+                    "delete" -> {
+                        if (isHard) {
+                            executeHardUserWipe(user.id, user.redId, user.username)
+                        } else {
+                            user.status = com.red.server.auth.model.AccountStatus.BANNED
+                            users.save(user)
+                        }
+                    }
+                }
+                if (action != "delete" || !isHard) users.save(user)
+                ok++
+                service.recordAudit(
+                    adminId = adminId,
+                    adminUsername = adminUsername,
+                    action = if (action == "delete" && isHard) "USER_BULK_HARD_DELETE" else "USER_BULK_$action",
+                    category = "USER",
+                    targetType = "USER",
+                    targetId = raw,
+                    description = buildString {
+                        append("Bulk ").append(if (action == "delete" && isHard) "hard-wipe" else action).append(" for ").append(user.username)
+                        reason?.let { append(": ").append(it) }
+                        if (action == "ban") durationDays?.let { append(" (").append(it).append("d)") }
+                    },
+                    severity = if (action in setOf("ban", "delete")) "WARNING" else "INFO"
+                )
+            } catch (e: Exception) {
+                failed++
+                errors.add("$raw: ${e.message?.take(80)}")
+            }
+        }
+        return ResponseEntity.ok(
+            mapOf(
+                "success" to (failed == 0),
+                "processed" to ok,
+                "failed" to failed,
+                "errors" to errors.take(20)
+            )
+        )
+    }
+
+    @PostMapping("/users/{userId}/ban")
+    fun banUser(
+        @PathVariable userId: String,
+        @RequestBody body: Map<String, Any?>,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val user = users.findById(UUID.fromString(userId)).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+        user.status = com.red.server.auth.model.AccountStatus.BANNED
+        users.save(user)
+
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_BANNED",
+            category = "USER",
+            targetType = "USER",
+            targetId = userId,
+            description = "Banned user ${user.username}: ${body["reason"]}",
+            severity = "WARNING"
+        )
+        return ResponseEntity.ok(mapOf("success" to true))
+    }
+
+    @PostMapping("/users/{userId}/unban")
+    fun unbanUser(
+        @PathVariable userId: String,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val user = users.findById(UUID.fromString(userId)).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+        user.status = com.red.server.auth.model.AccountStatus.APPROVED
+        users.save(user)
+
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_UNBANNED",
+            category = "USER",
+            targetType = "USER",
+            targetId = userId
+        )
+        return ResponseEntity.ok(mapOf("success" to true))
+    }
+
+    @PutMapping("/users/{userId}/role")
+    fun promoteUser(
+        @PathVariable userId: String,
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val user = users.findById(UUID.fromString(userId)).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+        val newRole = com.red.server.auth.model.AccountRole.valueOf(body["role"] ?: "USER")
+        user.role = newRole
+        users.save(user)
+
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "USER_PROMOTED",
+            category = "USER",
+            targetType = "USER",
+            targetId = userId,
+            description = "Changed role to ${newRole.name}"
+        )
+        return ResponseEntity.ok(mapOf("success" to true))
+    }
+
+    @Transactional
+    fun executeHardUserWipe(userId: UUID, redId: String, username: String) {
+        log.info("Starting cascading hard wipe for user: id={}, redId={}, username={}", userId, redId, username)
+
+        // 1. Clean PostgreSQL foreign constraints and cascade
+        try {
+            jdbcTemplate.update("UPDATE user_reports SET assigned_admin_id = NULL WHERE assigned_admin_id = ?", userId)
+            jdbcTemplate.update("UPDATE user_reports SET reviewed_by = NULL WHERE reviewed_by = ?", userId)
+            jdbcTemplate.update("UPDATE admin_audit_log SET admin_id = NULL WHERE admin_id = ?", userId)
+            jdbcTemplate.update("DELETE FROM user_privacy_settings WHERE user_id = ?", userId)
+            jdbcTemplate.update("DELETE FROM profiles WHERE user_id = ?", userId)
+            jdbcTemplate.update("DELETE FROM contacts WHERE owner_id = ? OR contact_id = ?", userId, userId)
+            jdbcTemplate.update("DELETE FROM blocked_users WHERE blocker_id = ? OR blocked_id = ?", userId, userId)
+            jdbcTemplate.update("DELETE FROM contact_requests WHERE requester_id = ? OR recipient_id = ?", userId, userId)
+            jdbcTemplate.update("DELETE FROM refresh_sessions WHERE user_id = ?", userId)
+            jdbcTemplate.update("DELETE FROM user_devices WHERE user_id = ?", userId)
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId)
+        } catch (e: Exception) {
+            log.error("Relational wipe exception for user $userId: ${e.message}", e)
+            users.findById(userId).ifPresent { users.delete(it) }
+        }
+
+        // 2. Clean MongoDB collections (messages, group_messages, call_history, user_status)
+        try {
+            val userOrCriteria = Criteria().orOperator(
+                Criteria.where("senderId").`is`(userId.toString()),
+                Criteria.where("recipientId").`is`(userId.toString()),
+                Criteria.where("senderRedId").`is`(redId),
+                Criteria.where("recipientRedId").`is`(redId)
+            )
+            mongoTemplate.remove(Query(userOrCriteria), "messages")
+            mongoTemplate.remove(Query(userOrCriteria), "group_messages")
+
+            val callOrCriteria = Criteria().orOperator(
+                Criteria.where("callerId").`is`(userId.toString()),
+                Criteria.where("calleeId").`is`(userId.toString()),
+                Criteria.where("callerRedId").`is`(redId),
+                Criteria.where("calleeRedId").`is`(redId)
+            )
+            mongoTemplate.remove(Query(callOrCriteria), "call_history")
+            mongoTemplate.remove(Query(Criteria.where("userId").`is`(userId.toString())), "user_status")
+        } catch (e: Exception) {
+            log.warn("Mongo wipe non-fatal warning for user $userId: ${e.message}")
+        }
+
+        // 3. Invalidate Redis active tokens & presence
+        try {
+            val keys = redisTemplate.keys("red:*:$userId*")
+            if (!keys.isNullOrEmpty()) {
+                redisTemplate.delete(keys)
+            }
+            val sessionKeys = redisTemplate.keys("red:session:$userId:*")
+            if (!sessionKeys.isNullOrEmpty()) {
+                redisTemplate.delete(sessionKeys)
+            }
+        } catch (e: Exception) {
+            log.warn("Redis session wipe non-fatal warning for user $userId: ${e.message}")
+        }
+    }
+
+    @DeleteMapping("/users/{userId}")
+    fun deleteUser(
+        @PathVariable userId: String,
+        @RequestParam(required = false) hard: Boolean = false,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val userUuid = UUID.fromString(userId)
+        val user = users.findById(userUuid).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+
+        if (hard) {
+            log.info("Executing permanent hard wipe for user {} ({}) by admin {}", user.username, user.id, authentication.principal)
+            executeHardUserWipe(user.id, user.redId, user.username)
+            service.recordAudit(
+                adminId = adminId,
+                adminUsername = authentication.principal.toString(),
+                action = "USER_PERMANENTLY_DELETED",
+                category = "USER",
+                targetType = "USER",
+                targetId = userId,
+                description = "Permanently wiped user ${user.username} (${user.redId}) and all associated records",
+                severity = "CRITICAL"
+            )
+        } else {
+            user.status = com.red.server.auth.model.AccountStatus.BANNED
+            users.save(user)
+            service.recordAudit(
+                adminId = adminId,
+                adminUsername = authentication.principal.toString(),
+                action = "USER_BANNED",
+                category = "USER",
+                targetType = "USER",
+                targetId = userId,
+                description = "Soft-banned user ${user.username}",
+                severity = "WARNING"
+            )
+        }
+
+        return ResponseEntity.ok(mapOf("success" to true, "hard" to hard))
+    }
+
+    // ━━━━━━━━━━━━━━━━ 🖥️ Admin Sessions ━━━━━━━━━━━━━━━━
+    @GetMapping("/sessions")
+    fun getAdminSessions(
+        @RequestParam(required = false) adminId: String? = null
+    ): ResponseEntity<List<Map<String, Any?>>> {
+        val sessions = if (adminId != null) {
+            service.getActiveSessions(UUID.fromString(adminId))
+        } else {
+            service.getAllActiveSessions()
+        }
+        // ⚠️ لا تُعاد كيانات JPA كما هي: `sessionTokenHash` سرّي ولا معنى له في
+        // الواجهة (كان يُسلسل ضمن الحمولة). خرائط صريحة = عقد معروف ومقفل، بنمط
+        // `/users` نفسه — أي حقل جديد لا يُصدَّر إلا بقرار واعٍ.
+        return ResponseEntity.ok(sessions.map { s ->
+            mapOf(
+                "id" to s.id,
+                "adminId" to s.adminId,
+                "ipAddress" to s.ipAddress,
+                "userAgent" to s.userAgent,
+                "location" to s.location,
+                "deviceInfo" to s.deviceInfo,
+                "startedAt" to s.startedAt,
+                "lastActiveAt" to s.lastActiveAt,
+                "expiresAt" to s.expiresAt,
+                "isActive" to s.isActive,
+                "terminatedAt" to s.terminatedAt,
+                "terminationReason" to s.terminationReason
+            )
+        })
+    }
+
+    @PostMapping("/sessions/{sessionId}/terminate")
+    fun terminateSession(
+        @PathVariable sessionId: String,
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        service.terminateSession(UUID.fromString(sessionId), body["reason"] ?: "ADMIN_ACTION")
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "SESSION_TERMINATED",
+            category = "SECURITY",
+            targetType = "SESSION",
+            targetId = sessionId,
+            severity = "WARNING"
+        )
+        return ResponseEntity.ok(mapOf("success" to true))
+    }
+
+    @PostMapping("/sessions/cleanup")
+    fun cleanupSessions(authentication: Authentication): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val count = service.cleanupExpiredSessions()
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "SESSIONS_CLEANED",
+            category = "SYSTEM",
+            description = "Cleaned up $count expired sessions"
+        )
+        return ResponseEntity.ok(mapOf("cleanedCount" to count))
+    }
+
+    // ━━━━━━━━━━━━━━━━ 🔑 Pre-key stock alert ━━━━━━━━━━━━━━━━
+    // 2026-09-26: الأجهزة المعتمدة التي مخزون EC/Kyber تحت العتبة (20).
+    // النفاد يسقط التشفير إلى signed-only ويفقد forward secrecy الكاملة.
+    @GetMapping("/prekeys/low-stock")
+    fun getLowStockPreKeys(
+        @RequestParam(required = false, defaultValue = "20") threshold: Int
+    ): ResponseEntity<Map<String, Any>> {
+        val rows = preKeys.lowStockDevices(threshold)
+        return ResponseEntity.ok(
+            mapOf(
+                "threshold" to threshold.coerceIn(1, 100),
+                "count" to rows.size,
+                "devices" to rows.map { d ->
+                    mapOf(
+                        "deviceId" to d.deviceId.toString(),
+                        "userId" to d.userId.toString(),
+                        "ecAvailable" to d.ecAvailable,
+                        "kyberAvailable" to d.kyberAvailable
+                    )
+                }
+            )
+        )
+    }
+
+    // ━━━━━━━━━━━━━━━━ 🚩 Feature Flags ━━━━━━━━━━━━━━━━
+    @GetMapping("/feature-flags")
+    fun getFeatureFlags(): ResponseEntity<List<FeatureFlag>> =
+        ResponseEntity.ok(service.getFeatureFlags())
+
+    @PutMapping("/feature-flags/{name}")
+    fun updateFeatureFlag(
+        @PathVariable name: String,
+        @RequestBody body: Map<String, Any?>,
+        authentication: Authentication
+    ): ResponseEntity<Any> {
+        val adminId = UUID.fromString(authentication.name)
+        val updated = service.updateFeatureFlag(name, adminId, body)
+            ?: return ResponseEntity.status(404).body(mapOf("success" to false, "error" to "FLAG_NOT_FOUND"))
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "FEATURE_FLAG_UPDATED",
+            category = "SYSTEM",
+            targetType = "FEATURE_FLAG",
+            targetId = name,
+            description = "Updated feature flag: ${body.keys}"
+        )
+        return ResponseEntity.ok(updated)
+    }
+
+    // ━━━━━━━━━━━━━━━━ 🚨 User Reports ━━━━━━━━━━━━━━━━
+    @GetMapping("/reports")
+    fun getReports(
+        @RequestParam(required = false) page: Int = 0,
+        @RequestParam(required = false) size: Int = 50,
+        @RequestParam(required = false) status: String? = null,
+        @RequestParam(required = false) category: String? = null,
+        @RequestParam(required = false) assignedToMe: Boolean = false
+    ): ResponseEntity<*> {
+        val pageable = PageRequest.of(page, size)
+        val adminId = try {
+            org.springframework.security.core.context.SecurityContextHolder.getContext().authentication?.name?.let { UUID.fromString(it) }
+        } catch (_: Exception) { null }
+        val result = when {
+            assignedToMe && adminId != null && status != null ->
+                service.getReportsForAdmin(adminId, status, pageable)
+            else -> service.getReportsFiltered(status, category, pageable)
+        }
+        return ResponseEntity.ok(result)
+    }
+
+    @PostMapping("/reports/{reportId}/resolve")
+    fun resolveReport(
+        @PathVariable reportId: String,
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<UserReport> {
+        val adminId = UUID.fromString(authentication.name)
+        val updated = service.resolveReport(
+            reportId = UUID.fromString(reportId),
+            adminId = adminId,
+            resolution = body["resolution"] ?: "NO_ACTION",
+            notes = body["notes"]
+        )
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "REPORT_RESOLVED",
+            category = "MODERATION",
+            targetType = "REPORT",
+            targetId = reportId,
+            description = "Resolution: ${body["resolution"]}"
+        )
+        return ResponseEntity.ok(updated ?: UserReport())
+    }
+
+    @PostMapping("/reports/{reportId}/dismiss")
+    fun dismissReport(
+        @PathVariable reportId: String,
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<UserReport> {
+        val adminId = UUID.fromString(authentication.name)
+        val updated = service.dismissReport(
+            reportId = UUID.fromString(reportId),
+            adminId = adminId,
+            notes = body["notes"]
+        )
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "REPORT_DISMISSED",
+            category = "MODERATION",
+            targetType = "REPORT",
+            targetId = reportId
+        )
+        return ResponseEntity.ok(updated ?: UserReport())
+    }
+
+    @PostMapping("/reports/{reportId}/assign")
+    fun assignReport(
+        @PathVariable reportId: String,
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<UserReport> {
+        val adminId = UUID.fromString(authentication.name)
+        val targetAdmin = body["adminId"]?.let { UUID.fromString(it) } ?: adminId
+        val updated = service.assignReport(UUID.fromString(reportId), targetAdmin)
+        return ResponseEntity.ok(updated ?: UserReport())
+    }
+
+    // ━━━━━━━━━━━━━━━━ 📢 Announcements ━━━━━━━━━━━━━━━━
+    @GetMapping("/announcements")
+    fun getAnnouncements(
+        @RequestParam(required = false) published: Boolean? = null
+    ): ResponseEntity<List<SystemAnnouncement>> =
+        ResponseEntity.ok(service.getAnnouncements(published))
+
+    @PostMapping("/announcements")
+    fun createAnnouncement(
+        @RequestBody body: Map<String, Any?>,
+        authentication: Authentication
+    ): ResponseEntity<SystemAnnouncement> {
+        val adminId = UUID.fromString(authentication.name)
+        // عنوان/متن الإعلان يأتيان من جسم JSON اختياري: التحويل القسري كان يرمي
+        // ClassCastException فيتحول خطأ مستخدم بسيط إلى 500 بلا رسالة. الفحص المسبق
+        // يعيد 400 بصفة تفهمها اللوحة وتُصلِحها من طرف العميل.
+        val title = (body["title"] as? String)?.trim().orEmpty()
+        val content = (body["body"] as? String)?.trim().orEmpty()
+        if (title.isEmpty() || content.isEmpty()) {
+            return ResponseEntity.badRequest().build()
+        }
+        val ann = service.createAnnouncement(
+            title = title,
+            body = content,
+            type = body["type"] as? String ?: "INFO",
+            targetAudience = body["targetAudience"] as? String ?: "ALL",
+            priority = (body["priority"] as? Number)?.toInt() ?: 0,
+            isDismissible = body["isDismissible"] as? Boolean ?: true,
+            adminId = adminId
+        )
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "ANNOUNCEMENT_CREATED",
+            category = "SYSTEM",
+            targetType = "ANNOUNCEMENT",
+            targetId = ann.id.toString(),
+            description = ann.title
+        )
+        return ResponseEntity.ok(ann)
+    }
+
+    @PostMapping("/announcements/{id}/publish")
+    fun publishAnnouncement(
+        @PathVariable id: String,
+        authentication: Authentication
+    ): ResponseEntity<SystemAnnouncement> {
+        val adminId = UUID.fromString(authentication.name)
+        val ann = service.publishAnnouncement(UUID.fromString(id), adminId)
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "ANNOUNCEMENT_PUBLISHED",
+            category = "SYSTEM",
+            targetType = "ANNOUNCEMENT",
+            targetId = id
+        )
+        return ResponseEntity.ok(ann ?: SystemAnnouncement())
+    }
+
+    @DeleteMapping("/announcements/{id}")
+    fun deleteAnnouncement(
+        @PathVariable id: String,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val success = service.deleteAnnouncement(UUID.fromString(id))
+        if (success) {
+            service.recordAudit(
+                adminId = adminId,
+                adminUsername = authentication.principal.toString(),
+                action = "ANNOUNCEMENT_DELETED",
+                category = "SYSTEM",
+                targetType = "ANNOUNCEMENT",
+                targetId = id,
+                severity = "WARNING"
+            )
+        }
+        return ResponseEntity.ok(mapOf("success" to success))
+    }
+
+    // ━━━━━━━━━━━━━━━━ 💾 Backups ━━━━━━━━━━━━━━━━
+    @GetMapping("/backups")
+    fun getBackups(
+        @RequestParam(required = false) page: Int = 0,
+        @RequestParam(required = false) size: Int = 20
+    ): ResponseEntity<Map<String, Any>> {
+        val pageable = PageRequest.of(page, size)
+        val result = service.getBackups(pageable)
+        return ResponseEntity.ok(mapOf(
+            "content" to result.content,
+            "page" to page,
+            "size" to size,
+            "totalElements" to result.totalElements,
+            "totalPages" to result.totalPages
+        ))
+    }
+
+    @PostMapping("/backups")
+    fun createBackup(
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<BackupHistory> {
+        val adminId = UUID.fromString(authentication.name)
+        val type = body["type"] ?: "FULL"
+        val backup = service.startBackup(type, adminId, body["notes"])
+        service.recordAudit(
+            adminId = adminId,
+            adminUsername = authentication.principal.toString(),
+            action = "BACKUP_STARTED",
+            category = "SYSTEM",
+            targetType = "BACKUP",
+            targetId = backup.id.toString(),
+            description = "Started $type backup"
+        )
+        return ResponseEntity.ok(backup)
+    }
+
+    @PostMapping("/backups/{backupId}/restore")
+    fun restoreBackup(
+        @PathVariable backupId: String,
+        @RequestBody body: Map<String, String>,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val confirmCode = body["confirmCode"] ?: ""
+        val success = service.restoreBackup(UUID.fromString(backupId), confirmCode)
+        if (success) {
+            service.recordAudit(
+                adminId = adminId,
+                adminUsername = authentication.principal.toString(),
+                action = "BACKUP_RESTORED",
+                category = "SYSTEM",
+                targetType = "BACKUP",
+                targetId = backupId,
+                severity = "CRITICAL"
+            )
+        }
+        return ResponseEntity.ok(mapOf("success" to success))
+    }
+
+    @DeleteMapping("/backups/{backupId}")
+    fun deleteBackup(
+        @PathVariable backupId: String,
+        authentication: Authentication
+    ): ResponseEntity<Map<String, Any>> {
+        val adminId = UUID.fromString(authentication.name)
+        val success = service.deleteBackup(UUID.fromString(backupId))
+        if (success) {
+            service.recordAudit(
+                adminId = adminId,
+                adminUsername = authentication.principal.toString(),
+                action = "BACKUP_DELETED",
+                category = "SYSTEM",
+                targetType = "BACKUP",
+                targetId = backupId,
+                severity = "WARNING"
+            )
+        }
+        return ResponseEntity.ok(mapOf("success" to success))
+    }
+}
+
+data class CreateUserAdminRequest(
+    val username: String = "",
+    val displayName: String = "",
+    val password: String = "",
+    val role: String? = "USER",
+    val status: String? = "APPROVED",
+    val redId: String? = null,
+    val bio: String? = null,
+    val avatarColor: String? = null
+)
+

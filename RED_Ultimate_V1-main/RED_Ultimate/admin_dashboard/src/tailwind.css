@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * طبقة Tailwind 3 (تُحمَّل من styles.css لأن postcss يقرأ هذا الملف كمدخل واحد).
+ * التكامل مع نظام الألوان السيادي في styles.css:
+ *   - متغيرات --background/--foreground/--primary/... معرَّفة بالفعل في
+ *     :root و[data-theme="light"] داخل src/styles.css كألوان مباشرة،
+ *     بينما tailwind.config.ts يقرأها الآن بلا غلاف hsl (var(--x) مباشرة)
+ *     حتى تعمل في الوضعين الداكن والفاتح معًا.
+ *   - لوحة yn في الإعداد تحمل نفس قيم RedTheme.kt: زمرد 14C79A / ذهب E0B551.
+ */

@@ -1,0 +1,256 @@
+package com.red.sovereign
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
+import android.view.WindowManager
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.activity.viewModels
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import com.red.sovereign.auth.AuthState
+import com.red.sovereign.auth.AuthViewModel
+import com.red.sovereign.security.AppLockScreen
+import com.red.sovereign.security.AppLockPolicy
+import com.red.sovereign.security.DebugSecurityManager
+import com.red.sovereign.security.CertificatePinner
+import com.red.sovereign.settings.SettingsRuntime
+import com.red.sovereign.core.AppStartupCoordinator
+import com.red.sovereign.ui.AuthFlow
+import com.red.sovereign.ui.theme.YounesTheme
+import com.red.sovereign.ui.theme.SovereignBackground
+
+class MainActivity : FragmentActivity() {
+    private val authViewModel: AuthViewModel by viewModels()
+
+    /** منسق البداية — يدير تشغيل وإيقاف الخدمات بعيداً عن Activity. */
+    private lateinit var startupCoordinator: AppStartupCoordinator
+
+
+    private val appPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        Log.i("Permissions", "Initial permissions granted: $grants")
+    }
+    private val localNetworkPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        Log.i("LocalNetwork", if (granted) "LAN access granted" else "LAN access denied")
+    }
+    private var localNetworkPermissionRequested = false
+
+    /** المعرّف المستهدف من الإشعار (conversationId + sender) لفتح المحادثة مباشرة. */
+    private var deepLinkConversation by mutableStateOf<String?>(null)
+    private var deepLinkSender by mutableStateOf<String?>(null)
+
+    /** حالة قفل التطبيق بعد تجاوز مهلة الخلفية. */
+    private var appLocked by mutableStateOf(false)
+    private var backgroundedAtElapsedMs: Long? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        startupCoordinator = AppStartupCoordinator(application)
+        handleNotificationIntent(intent)
+        // Initialize security manager
+        DebugSecurityManager.initialize(application)
+
+        // Log security recommendations
+        DebugSecurityManager.getSecurityRecommendations().forEach { rec ->
+            Log.i("Security", "[${rec.severity}] ${rec.title}: ${rec.description}")
+        }
+
+        // Private messages, recovery codes and device identity must not leak through screenshots
+        // or the Android recent-apps thumbnail.
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        SettingsRuntime.initialize(application)
+        // ─── مزامنة ثيم Liquid Glass 2026 مع الإعدادات المحفوظة ──────────────
+        runCatching {
+            val s = SettingsRuntime.current
+            com.red.sovereign.ui.theme.AppThemeState.currentPreset = runCatching { com.red.sovereign.ui.theme.AppThemePreset.valueOf(s.themePreset) }.getOrElse { com.red.sovereign.ui.theme.AppThemePreset.SOVEREIGN }
+            com.red.sovereign.ui.theme.AppThemeState.themeMode = runCatching { com.red.sovereign.ui.theme.AppThemeMode.valueOf(s.themeMode) }.getOrElse { com.red.sovereign.ui.theme.AppThemeMode.SYSTEM }
+            com.red.sovereign.ui.theme.AppThemeState.highContrast = s.highContrast
+            com.red.sovereign.ui.theme.AppThemeState.liquidGlassEnabled = s.liquidGlassEnabled
+            com.red.sovereign.ui.theme.AppThemeState.reduceMotion = s.reduceMotion
+            com.red.sovereign.ui.theme.AppThemeState.fontScale = s.fontScale
+            com.red.sovereign.ui.theme.AppThemeState.glassStyle = com.red.sovereign.ui.theme.SovereignGlassStyle.fromName(s.glassStyle)
+            com.red.sovereign.ui.theme.AppThemeState.glassIntensity = com.red.sovereign.ui.theme.GlassIntensityLevel.fromName(s.glassIntensity)
+            com.red.sovereign.ui.theme.AppThemeState.glassPerformance = com.red.sovereign.ui.theme.GlassPerformance.fromName(s.glassPerformance)
+            com.red.sovereign.ui.theme.AppThemeState.customPrimary = if (s.customPrimary != 0) androidx.compose.ui.graphics.Color(s.customPrimary) else null
+        }
+        enableEdgeToEdge()
+        setContent {
+            val preferences = SettingsRuntime.current
+            // مزامنة حية كل Recomposition
+            androidx.compose.runtime.LaunchedEffect(preferences) {
+                com.red.sovereign.ui.theme.AppThemeState.highContrast = preferences.highContrast
+                com.red.sovereign.ui.theme.AppThemeState.reduceMotion = preferences.reduceMotion
+                com.red.sovereign.ui.theme.AppThemeState.fontScale = preferences.fontScale
+                com.red.sovereign.ui.theme.AppThemeState.liquidGlassEnabled = preferences.liquidGlassEnabled
+                com.red.sovereign.ui.theme.AppThemeState.glassStyle = com.red.sovereign.ui.theme.SovereignGlassStyle.fromName(preferences.glassStyle)
+                com.red.sovereign.ui.theme.AppThemeState.glassIntensity = com.red.sovereign.ui.theme.GlassIntensityLevel.fromName(preferences.glassIntensity)
+                com.red.sovereign.ui.theme.AppThemeState.glassPerformance = com.red.sovereign.ui.theme.GlassPerformance.fromName(preferences.glassPerformance)
+                runCatching { com.red.sovereign.ui.theme.AppThemeState.currentPreset = com.red.sovereign.ui.theme.AppThemePreset.valueOf(preferences.themePreset) }
+                runCatching { com.red.sovereign.ui.theme.AppThemeState.themeMode = com.red.sovereign.ui.theme.AppThemeMode.valueOf(preferences.themeMode) }
+                if (preferences.customPrimary != 0) com.red.sovereign.ui.theme.AppThemeState.customPrimary = androidx.compose.ui.graphics.Color(preferences.customPrimary)
+            }
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, preferences.fontScale)) {
+                YounesTheme {
+                    SovereignBackground {
+                        val state = authViewModel.state
+                        LaunchedEffect(state) {
+                            if (state is AuthState.Authenticated) {
+                                requestNecessaryPermissions()
+                                startupCoordinator.onAuthenticated(this@MainActivity, authViewModel)
+                            } else if (state !is AuthState.Loading) {
+                                startupCoordinator.onLoggedOut(this@MainActivity)
+                            }
+                        }
+                        if (state is AuthState.Authenticated) {
+                            if (appLocked && SettingsRuntime.current.appLockEnabled) {
+                                AppLockScreen(onUnlocked = { appLocked = false })
+                            } else {
+                                // لوحة تحكم موحدة حديثة - أفضل من واتساب وتيليجرام
+                                // ModernRedDashboard هو الأحدث والأفضل بدون تكرارات
+                                // يدعم كل الهواتف، ألوان AAA مقروءة، Liquid Glass 2026
+                                com.red.sovereign.ui.ModernRedDashboard(state, authViewModel, deepLinkSender, deepLinkConversation)
+                            }
+                        } else AuthFlow(authViewModel)
+                    }
+                }
+            }
+        }
+    }
+
+    /** استخراج بيانات المحادثة من إشعار الرسالة. */
+    private fun handleNotificationIntent(notificationIntent: Intent?) {
+        if (notificationIntent == null) return
+        // توحيد onChat: تقليم الفراغات قبل تمرير الهدف للوحة (يمنع فتح محادثة بمعرف فاسد).
+        notificationIntent.getStringExtra("conversation_id")?.trim()?.takeIf { it.isNotBlank() }?.let { deepLinkConversation = it }
+        // توحيد onChat: تطبيع + تحقق قبل تمرير الهدف للوحة (يمنع فتح محادثة بمعرف فاسد).
+        val rawSender = notificationIntent.getStringExtra("sender_red_id")
+        val cleanSender = rawSender?.let { com.red.sovereign.core.YounesId.normalizeInput(it) }?.takeIf { it.isNotBlank() }
+        deepLinkSender = if (cleanSender != null && com.red.sovereign.core.YounesId.isValid(cleanSender)) cleanSender else null
+        consumeDeepLink()
+    }
+
+    /** استهلاك الـ deep link مرة واحدة حتى لا يُعاد فتحه (تدوير/ onNewIntent مكرر). */
+    private fun consumeDeepLink() {
+        runCatching {
+            intent?.let {
+                it.data = null
+                it.removeExtra("conversation_id")
+                it.removeExtra("sender_red_id")
+            }
+        }
+    }
+
+    /** عند فتح التطبيق من إشعار بينما هو مفتوح (launchMode singleTask). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    override fun onDestroy() {
+        if (!isChangingConfigurations) {
+            startupCoordinator.onDestroy()
+        }
+        super.onDestroy()
+    }
+
+    private fun requestNecessaryPermissions() {
+        val needed = buildList {
+            if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.RECORD_AUDIO)
+            }
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.CAMERA)
+            }
+            if (Build.VERSION.SDK_INT >= 31 && ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            // LEGENDARY FIX: أذونات الوسائط 13/14 (كانت غائبة فيسبب فشل اختيار صور/فيديو)
+            if (Build.VERSION.SDK_INT >= 33) {
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                    add(Manifest.permission.READ_MEDIA_IMAGES)
+                }
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                    add(Manifest.permission.READ_MEDIA_VIDEO)
+                }
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    add(Manifest.permission.READ_MEDIA_AUDIO)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= 34 && ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) != PackageManager.PERMISSION_GRANTED) {
+                add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+            }
+        }
+        if (needed.isNotEmpty()) {
+            appPermissions.launch(needed.toTypedArray())
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // Enter PiP if video call is active
+        try {
+            val callActive = com.red.sovereign.calls.CallRuntime.state is com.red.sovereign.calls.CallUiState.Active
+            val confActive = com.red.sovereign.calls.ConferenceRuntime.state is com.red.sovereign.calls.ConferenceUiState.Active
+            val isVideo = com.red.sovereign.calls.CallRuntime.localVideo != null || com.red.sovereign.calls.ConferenceRuntime.localVideo != null
+            if ((callActive || confActive) && isVideo && android.os.Build.VERSION.SDK_INT >= 26) {
+                val params = android.app.PictureInPictureParams.Builder().setAspectRatio(android.util.Rational(9, 16)).build()
+                enterPictureInPictureMode(params)
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Android 17 (API 37+, إلزامي لمن يستهدف SDK 37): الوصول للشبكة المحلية
+        // (mDNS/NSD وraw TCP للخادم المحلي) خلف ACCESS_LOCAL_NETWORK. بدونه يفشل
+        // الاتصال بصمت تام — لا رسالة، لا سجل. الملاحظة القديمة (2026-09-05)
+        // بطلت باستقرار SDK 37. (إنقاذ من PR #55 — arena/01a0a0cf — 2026-09-15.)
+        if (!localNetworkPermissionRequested &&
+            Build.VERSION.SDK_INT >= 37 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED
+        ) {
+            localNetworkPermissionRequested = true
+            localNetworkPermission.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) {
+            backgroundedAtElapsedMs = SystemClock.elapsedRealtime()
+        }
+    }
+
+    /** قفل التطبيق فقط بعد بقائه بالخلفية لمدة كافية. */
+    override fun onResume() {
+        super.onResume()
+        val shouldLock = authViewModel.state is AuthState.Authenticated && AppLockPolicy.shouldLock(
+            lockEnabled = SettingsRuntime.current.appLockEnabled,
+            backgroundedAtElapsedMs = backgroundedAtElapsedMs,
+            nowElapsedMs = SystemClock.elapsedRealtime()
+        )
+        backgroundedAtElapsedMs = null
+        if (shouldLock) {
+            appLocked = true
+        }
+    }
+}

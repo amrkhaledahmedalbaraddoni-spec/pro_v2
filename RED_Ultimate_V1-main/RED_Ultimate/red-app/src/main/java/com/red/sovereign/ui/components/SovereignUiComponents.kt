@@ -1,0 +1,489 @@
+package com.red.sovereign.ui.components
+
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.CallEnd
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.red.sovereign.ui.theme.SovereignColors
+import com.red.sovereign.ui.theme.SovereignGradients
+import kotlin.math.sin
+
+/**
+ * مكتبة مكوّنات يونس السيادية — الأساس الموحّد للتصميم الداكن الزجاجي الفاخر.
+ *
+ * كل مكوّن هنا عديم الحالة (stateless) ويأخذ ألوانه من `SovereignColors`
+ * حتى يبقى تغيير الهوية البصرية في ملف واحد.
+ */
+
+/**
+ * بطاقة زجاجية فاخرة — Liquid Glass 2026 (واتساب/تليجرام)
+ * زجاج سائل شفاف + blur غير مباشر (alpha) + عمق ضوئي + حد متدرّج.
+ * تتقلّص عند الضغط فقط إن لم يكن reduceMotion مفعّلاً.
+ */
+@Composable
+fun SovereignGlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 20.dp,
+    borderBrush: Brush = SovereignGradients.liquidGlassBorder,
+    backgroundColor: Color = SovereignColors.SurfaceCard.copy(alpha = 0.65f),
+    liquidGlass: Boolean = com.red.sovereign.ui.theme.AppThemeState.liquidGlassEnabled,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val reduceMotion = com.red.sovereign.ui.theme.AppThemeState.reduceMotion
+    val targetScale = if (isPressed && onClick != null && !reduceMotion) 0.97f else 1f
+    val scale by animateFloatAsState(
+        targetValue = targetScale,
+        animationSpec = if (reduceMotion) spring(stiffness = Spring.StiffnessMedium) else spring(stiffness = Spring.StiffnessMediumLow),
+        label = "GlassCardScale"
+    )
+
+    val bg = if (liquidGlass) {
+        // Liquid Glass: شفافية أعلى + عمق — يحاكي real-time blurring عبر alpha
+        SovereignColors.GlassBgLiquid
+    } else {
+        backgroundColor
+    }
+    val brush = if (liquidGlass) SovereignGradients.liquidGlassBorder else borderBrush
+    val elevation = if (liquidGlass) 12.dp else 8.dp
+
+    Surface(
+        modifier = modifier
+            .scale(scale)
+            .clip(RoundedCornerShape(cornerRadius))
+            .border(1.dp, brush, RoundedCornerShape(cornerRadius))
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        onClick = onClick
+                    )
+                } else {
+                    Modifier
+                }
+            ),
+        color = bg,
+        shadowElevation = elevation,
+        tonalElevation = if (liquidGlass) 6.dp else 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            content = content
+        )
+    }
+}
+
+/**
+ * زر نيون سيادي تفاعلي — نص داكن على الزمرد/الذهب لضمان 9:1 AAA (WCAG).
+ * السابق كان أبيض على #00A884 = 3.03:1 راسب — الآن YounesOnBrand.
+ *
+ * نظام الأزرار الموحّد (2026): حبة pill بارتفاع 48–56dp، تسمية نصية دائمًا،
+ * تموّج ripple افتراضي، وcontentDescription إلزامي لقارئ الشاشة.
+ */
+@Composable
+fun SovereignNeonButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    gradient: Brush = SovereignGradients.emerald,
+    contentColor: Color = Color(0xFF06090F),
+    enabled: Boolean = true,
+    height: Dp = 52.dp,
+    contentDescription: String = text
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val reduceMotion = com.red.sovereign.ui.theme.AppThemeState.reduceMotion
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled && !reduceMotion) 0.97f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "NeonButtonScale"
+    )
+
+    Box(
+        modifier = modifier
+            .height(height.coerceIn(48.dp, 56.dp))
+            .scale(scale)
+            .clip(RoundedCornerShape(height / 2))
+            .background(
+                if (enabled) {
+                    gradient
+                } else {
+                    Brush.linearGradient(listOf(Color(0xFF2A374A), Color(0xFF1E293B)))
+                }
+            )
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = if (enabled) 0.25f else 0.05f),
+                shape = RoundedCornerShape(height / 2)
+            )
+            .clickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                onClickLabel = contentDescription,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                color = contentColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                fontFamily = com.red.sovereign.ui.theme.PlexArabicFamily
+            )
+        }
+    }
+}
+
+/**
+ * نظام الأزرار الموحّد — أحجام المكالمة ثابتة عبر كل الشاشات:
+ * إنهاء 64dp روبي #E03131 (نص/أيقونة بيضاء)، قبول 72dp زمرد #14C79A
+ * (أيقونة داكنة YounesOnBrand). كل زر يحمل تسمية لقارئ الشاشة وتموّجًا.
+ */
+@Composable
+fun SovereignCallEndButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "إنهاء المكالمة",
+    size: Dp = 64.dp
+) {
+    androidx.compose.material3.FloatingActionButton(
+        onClick = onClick,
+        containerColor = com.red.sovereign.ui.theme.YounesRuby,
+        contentColor = Color.White,
+        modifier = modifier.size(size),
+        shape = CircleShape
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.CallEnd,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(30.dp)
+        )
+    }
+}
+
+@Composable
+fun SovereignCallAcceptButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "قبول",
+    size: Dp = 72.dp
+) {
+    androidx.compose.material3.FloatingActionButton(
+        onClick = onClick,
+        containerColor = com.red.sovereign.ui.theme.YounesPrimary,
+        contentColor = com.red.sovereign.ui.theme.YounesOnBrand,
+        modifier = modifier.size(size),
+        shape = CircleShape
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Call,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(36.dp)
+        )
+    }
+}
+
+/**
+ * زر تحكّم دائري للمكالمة — 54dp ضمن نطاق 48–56، حد زجاجي، تموّج،
+ * وتسمية إلزامية (كان contentDescription=null — قارئ الشاشة أصمّ).
+ */
+@Composable
+fun SovereignCallControlButton(
+    icon: ImageVector,
+    contentDescription: String,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .size(54.dp)
+            .clip(CircleShape)
+            .background(if (isActive) SovereignColors.RubyNeon.copy(alpha = 0.25f) else SovereignColors.SurfaceCard)
+            .border(
+                1.2.dp,
+                if (isActive) SovereignColors.RubyNeon else SovereignColors.GlassBorder,
+                CircleShape
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                onClickLabel = contentDescription,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (isActive) SovereignColors.RubyNeon else Color.White,
+            modifier = Modifier.size(26.dp)
+        )
+    }
+}
+
+/**
+ * شارة حالة حيّة بنبض متوهّج متحرّك (Live Pulsing Badge).
+ */
+@Composable
+fun SovereignStatusBadge(
+    label: String,
+    modifier: Modifier = Modifier,
+    glowColor: Color = SovereignColors.EmeraldNeon,
+    textColor: Color = Color.White,
+    icon: ImageVector? = null,
+    animated: Boolean = true
+) {
+    // Gated: no InfiniteTransition when static or reduceMotion — saves a
+    // permanent 1s loop on every screen that shows a badge.
+    val reduceMotion = com.red.sovereign.ui.theme.AppThemeState.reduceMotion
+    val alphaGlow: Float = if (animated && !reduceMotion) {
+        BadgeGlowAlpha()
+    } else 0.85f
+
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .border(1.dp, glowColor.copy(alpha = alphaGlow * 0.7f), RoundedCornerShape(8.dp)),
+        color = glowColor.copy(alpha = 0.15f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(glowColor.copy(alpha = alphaGlow))
+            )
+            Spacer(Modifier.width(6.dp))
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = textColor,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(
+                text = label,
+                color = textColor,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+/**
+ * محاكي موجات صوتية حيّة — Liquid Glass: شفافية متدفقة كما في واتساب 2026.
+ * يحترم reduceMotion (يثبت عند prefers-reduced-motion).
+ */
+@Composable
+fun SovereignWaveVisualizer(
+    modifier: Modifier = Modifier,
+    isSpeaking: Boolean = true,
+    barCount: Int = 18,
+    barColor: Color = SovereignColors.EmeraldNeon,
+    maxBarHeight: Dp = 36.dp
+) {
+    val reduceMotion = com.red.sovereign.ui.theme.AppThemeState.reduceMotion
+    // Gated: static phase when silent or reduceMotion — the loop only exists
+    // while actually visualizing speech.
+    val phase: Float = if (isSpeaking && !reduceMotion) {
+        WavePhase()
+    } else 0f
+
+    Canvas(modifier = modifier.height(maxBarHeight)) {
+        val totalWidth = size.width
+        val barWidth = (totalWidth / (barCount * 1.8f)).coerceAtLeast(4f)
+        val gap = (totalWidth - (barWidth * barCount)) / (barCount - 1).coerceAtLeast(1)
+
+        for (i in 0 until barCount) {
+            val normalizedHeight = if (isSpeaking) {
+                val wave = sin(phase + (i.toFloat() * 0.5f))
+                0.25f + (0.75f * ((wave + 1f) / 2f))
+            } else {
+                0.15f
+            }
+
+            val currentHeight = size.height * normalizedHeight
+            val left = i * (barWidth + gap)
+            val top = (size.height - currentHeight) / 2f
+
+            drawRoundRect(
+                color = barColor.copy(alpha = if (isSpeaking) 0.9f else 0.35f),
+                topLeft = Offset(left, top),
+                size = Size(barWidth, currentHeight),
+                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BadgeGlowAlpha(): Float {
+    val infiniteTransition = rememberInfiniteTransition(label = "BadgeGlow")
+    val alphaGlow by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            // 2000ms بطيئة فاخرة — نبضة واحدة كحد أقصى لكل شاشة
+            animation = tween(com.red.sovereign.ui.theme.SovereignBadgeGlowMs, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "AlphaGlow"
+    )
+    return alphaGlow
+}
+
+@Composable
+private fun WavePhase(): Float {
+    val infiniteTransition = rememberInfiniteTransition(label = "WaveAnimation")
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 6.28f,
+        animationSpec = infiniteRepeatable(
+            // 1900ms ≥ حد 1800ms — كان 1200ms يلهث
+            animation = tween(com.red.sovereign.ui.theme.SovereignWaveDurationMs, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "WavePhase"
+    )
+    return phase
+}
+
+/**
+ * إطار صورة شخصية (Avatar) محاط بحلقة ذهبية، مع شارة التشفير التام E2EE
+ * أو مؤشّر الاتصال المباشر.
+ */
+@Composable
+fun SovereignAvatarRing(
+    initial: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 56.dp,
+    isOnline: Boolean = true,
+    isEncrypted: Boolean = true,
+    ringColor: Color = SovereignColors.Gold
+) {
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        // الحلقة الخارجية المتوهّجة مع الحرف الأول من الاسم
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .border(2.dp, ringColor, CircleShape)
+                .background(SovereignColors.SurfaceCard),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = initial.take(1),
+                color = Color.White,
+                fontWeight = FontWeight.Black,
+                fontSize = (size.value * 0.38f).sp
+            )
+        }
+
+        // شارة التشفير، وإلا مؤشّر الحالة النشطة
+        if (isEncrypted) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(Alignment.BottomEnd)
+                    .clip(CircleShape)
+                    .background(SovereignColors.EmeraldNeon)
+                    .border(1.5.dp, SovereignColors.Obsidian, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "مشفَّر",
+                    tint = Color.Black,
+                    modifier = Modifier.size(9.dp)
+                )
+            }
+        } else if (isOnline) {
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .align(Alignment.BottomEnd)
+                    .clip(CircleShape)
+                    .background(SovereignColors.CyanNeon)
+                    .border(1.5.dp, SovereignColors.Obsidian, CircleShape)
+            )
+        }
+    }
+}
+

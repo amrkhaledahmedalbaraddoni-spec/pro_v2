@@ -1,0 +1,202 @@
+import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
+import { Plus, Download, Trash2, RotateCcw, MoreVertical, Eye } from 'lucide-react';
+import { useBackups, mutations } from '@/api/queries';
+import { ErrorBanner } from '@/pages/_shared';
+import { formatRelativeTime, formatBytes } from '@/utils';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { SearchInput } from '@/components/ui/search-input';
+import { DataTable } from '@/components/ui/data-table';
+import { Pagination } from '@/components/ui/pagination';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu } from '@/components/ui/simple-dropdown-menu';
+import { Dialog } from '@/components/ui/dialog';
+import { Form, FormField } from '@/components/ui/form';
+
+const TYPE_OPTIONS = [
+  { value: 'FULL', label: 'Full Backup' },
+  { value: 'INCREMENTAL', label: 'Incremental' },
+  { value: 'CONFIG_ONLY', label: 'Config Only' },
+  { value: 'USER_DATA', label: 'User Data' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'FAILED', label: 'Failed' },
+];
+
+// ✅ الجلسة 12: بيانات حية 100% من /api/admin/backups — حُذف الاحتياطي الوهمي (20 نسخة مُفبركة)
+export function BackupsPage() {
+  const { t } = useTranslation();
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [restoringBackup, setRestoringBackup] = useState<any>(null);
+  
+  const { data: backups, isLoading, error: queryError } = useBackups();
+  const createMutation = mutations.useCreateBackup();
+  const restoreMutation = mutations.useRestoreBackup();
+  const deleteMutation = mutations.useDeleteBackup();
+  
+  const source = Array.isArray(backups) ? backups : [];
+  const logs = source.slice(page * size, (page + 1) * size);
+  const totalPages = Math.ceil(source.length / size);
+  
+  const columns = [
+    {
+      key: 'name',
+      title: 'Backup Name',
+      cell: (backup: any) => (
+        <div>
+          <p className="font-mono font-medium text-yn-text">{backup.name}</p>
+          <p className="text-xs text-yn-text-muted">{backup.type}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      title: 'Type',
+      cell: (backup: any) => <Badge variant="blue">{backup.type}</Badge>,
+    },
+    {
+      key: 'status',
+      title: 'Status',
+      cell: (backup: any) => <Badge variant={getStatusVariant(backup.status)}>{backup.status}</Badge>,
+    },
+    {
+      key: 'size',
+      title: 'Size',
+      cell: (backup: any) => <span className="text-yn-text-secondary font-mono">{formatBytes(backup.size)}</span>,
+    },
+    {
+      key: 'startedAt',
+      title: 'Started',
+      cell: (backup: any) => <span className="text-yn-text-secondary">{formatRelativeTime(backup.startedAt)}</span>,
+    },
+    {
+      key: 'completedAt',
+      title: 'Completed',
+      cell: (backup: any) => backup.completedAt ? <span className="text-yn-text-secondary">{formatRelativeTime(backup.completedAt)}</span> : <span className="text-yn-text-muted">—</span>,
+    },
+    {
+      // ✅ 2026-09-26: كان الحقلان موجودين في الباك اند ومُهمَلين هنا — «—» وهمية بلا سبب
+      key: 'checksum',
+      title: 'Checksum',
+      cell: (backup: any) => (
+        <span
+          className="font-mono text-yn-text-secondary text-xs max-w-[12rem] truncate block"
+          title={backup.checksum ?? ''}
+        >
+          {backup.checksum ? `${String(backup.checksum).slice(0, 16)}…` : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'restoreCount',
+      title: 'Restores',
+      cell: (backup: any) => (
+        <Badge variant={(backup.restoreCount ?? 0) > 0 ? 'gold' : 'blue'}>{backup.restoreCount ?? 0}</Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      title: 'Actions',
+      cell: (backup: any) => (
+        <DropdownMenu>
+          <DropdownMenu.Trigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end">
+            {backup.status === 'COMPLETED' && (
+              <DropdownMenu.Item onClick={() => { setRestoringBackup(backup); setRestoreDialogOpen(true); }}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Restore
+              </DropdownMenu.Item>
+            )}
+            <DropdownMenu.Item>
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </DropdownMenu.Item>
+            <DropdownMenu.Item>
+              <Eye className="w-4 h-4 mr-2" />
+              View Details
+            </DropdownMenu.Item>
+            <DropdownMenu.Item onClick={() => deleteMutation.mutate(backup.id)}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu>
+      ),
+    },
+  ];
+  
+  return (
+    <div className="yn-page space-y-6">
+      {/* ✅ الجلسة 12: بيانات حية — لافتة شرطية عند فشل الجلب فقط */}
+      {Boolean(queryError) && <ErrorBanner message="تعذّر تحميل النسخ الاحتياطية من الخادم — الجدول أدناه فارغ وليس بيانات وهمية" />}
+      {/* ✅ 2026-09-26: زر عودة للصفحة العامة — دمج الازدواج الملاحي بدون حذف */}
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="secondary" size="sm"><Link to="/system">عودة إلى System</Link></Button>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-yn-text">{t('system.backups.title')}</h1>
+          <p className="text-yn-text-secondary">{t('system.backups.subtitle')}</p>
+        </div>
+        <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Backup
+        </Button>
+      </div>
+      
+      <div className="yn-card yn-card-liquid yn-glass overflow-hidden">
+        <DataTable columns={columns} data={logs} rowKey="id" emptyMessage="No backups found" />
+        
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={setPage}
+        />
+      </div>
+      
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create Backup">
+        <Form onSubmit={(data: any) => { createMutation.mutate(data); setDialogOpen(false); }}>
+          <FormField name="type" label="Backup Type" type="select" options={TYPE_OPTIONS} required />
+          <FormField name="notes" label="Notes" type="textarea" placeholder="Optional notes" />
+        </Form>
+      </Dialog>
+      
+      <Dialog open={restoreDialogOpen} onClose={() => { setRestoreDialogOpen(false); setRestoringBackup(null); }} title="Restore Backup">
+        <p className="text-sm text-yn-text-secondary mb-4">This will restore the system to the state at backup time. This action cannot be undone.</p>
+        {restoringBackup && (
+          <Form onSubmit={(data: any) => { restoreMutation.mutate({ backupId: restoringBackup.id, confirmCode: data.confirmCode }); setRestoreDialogOpen(false); setRestoringBackup(null); }}>
+            <div className="mb-4 p-3 bg-yn-error/10 border border-yn-error/30 rounded-lg">
+              <p className="text-yn-error font-medium">Warning: This will overwrite current data!</p>
+              <p className="text-sm text-yn-text-secondary mt-1">Backup: {restoringBackup.name} ({restoringBackup.type})</p>
+            </div>
+            <FormField name="confirmCode" label="Type 'RESTORE' to confirm" placeholder="RESTORE" required />
+          </Form>
+        )}
+      </Dialog>
+    </div>
+  );
+}
+
+function getStatusVariant(status: string): 'green' | 'gold' | 'blue' | 'danger' {
+  switch (status) {
+    case 'COMPLETED': return 'green';
+    case 'IN_PROGRESS': return 'blue';
+    case 'PENDING': return 'gold';
+    case 'FAILED': return 'danger';
+    default: return 'gold';
+  }
+}
+
+export default BackupsPage;

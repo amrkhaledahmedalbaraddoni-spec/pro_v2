@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ═══════════════════════════════════════════════════════════════════
+    YOUNES Sovereign — توحيد الأيقونات (2026-09-27) — aliases + تعليق فقط
+    ═══════════════════════════════════════════════════════════════════
+    ممنوع الحذف: كل ملفات PNG/SVG القديمة تبقى في مكانها. هذا الملف
+    يُعلن القانوني (canonical) ويُوثّق التكرار حتى لا تُستخدم المرشحات
+    الميتة في شيفرة جديدة. لا تُضف ألوانًا هنا (راجع values/colors.xml).
+
+    ── القانوني (يُستخدم حصرًا في أي شيفرة جديدة) ──
+    • اللانشر: AndroidManifest → @mipmap/ic_launcher / @mipmap/ic_launcher_round
+      → mipmap-anydpi-v26/ic_launcher(.xml|_round.xml) → drawable/
+        ic_launcher_background.xml (تدرج كحلي #0E2A47→#0B1E33→#000C1C)
+        ic_launcher_foreground.xml (درع Y ذهبي #E8B84A + توهج)
+        ic_launcher_monochrome.xml (Material You أحادي — فقاعة Q/Y بيضاء)
+      → mipmap-{mdpi..xxxhdpi}/ic_launcher(.png|_round.png): إرث ما قبل API26
+        فقط (أجهزة Android 7 وما دون). لا تحذفها ولا تُولّد منها.
+    • علامة الواجهات: @drawable/younes_icon_master (PNG 389KB — المستعمل في
+      AuthScreens/RedDashboard/CallUiKit/SovereignTopBar).
+    • أيقونة التنبيهات الصغيرة: @drawable/younes_icon_master_vector (أبيض،
+      آمن لـ setSmallIcon — المستعمل في SovereignNotificationRouter).
+
+    ── التكرار المؤكد بالبصمة (SHA-256) — مرشحات ميتة، لا تُحيِها ──
+    • D52CCFE5C93C: younes_admin_icon.png == younes_ultimate_pro_max.png
+      (2,196,954 بايت — نسختان متطابقتان بايتًا ببايت).
+    • DDBFDF858456: drawable/younes_icon_ultimate_clean.png == artwork/ICON1.png
+      == artwork/younes_master_1024.png (1,388,411 بايت).
+    • CDB2229BDD14: artwork/07_ultimate_clean.png == artwork/07_ultimate_final.png.
+    • B74E9C19C542: younes_background{,_8k_new,_pro}.jpg — ثلاث نسخ متطابقة
+      من placeholder أبيض 1×1 (287 بايت) — ليست خلفيات حقيقية.
+    • مرشحات وحيدة غير مُحالة من أي .kt: aqyal_legacy.png، younes_final_8k.png،
+      younes_icon_8k_new.png، younes_icon_clean_pro.png، younes_icon_hybrid_pro.png،
+      younes_icon_pro.png، younes_icon_ultimate.png، younes_icon_ultimate_v2.png،
+      younes_background*.jpg — تُبقى كأرشيف تصميم (artwork/) لا كموارد حية.
+    • مصدر التصميم القابل للتحرير: artwork/younes-launcher-source.svg
+      (الـSVG الخام مرفوض من AAPT تحت res/ — راجع artwork/README.md).
+
+    ── التعارض المفحوص (محسوم — بلا تغيير) ──
+    • adaptive (API26+) مقابل mipmap PNG: لا تعارض — النظام يُفضّل الـXML
+      على الحديث، والـPNG للقديم فقط.
+    • monochrome مقابل foreground: تصميمان مختلفان قصدًا (الأحادي نسخة
+      Material You مبسطة) — يُبقيان كما هما.
+-->
+<resources>
+    <!-- الاسم القانوني للعلامة في الشيفرة الجديدة (alias نحو PNG القانوني). -->
+    <item name="brand_icon_canonical" type="drawable">@drawable/younes_icon_master</item>
+    <!-- الاسم القانوني للأيقونة الشعاعية/التنبيهات (alias نحو الـvector الأبيض). -->
+    <item name="brand_icon_vector" type="drawable">@drawable/younes_icon_master_vector</item>
+</resources>

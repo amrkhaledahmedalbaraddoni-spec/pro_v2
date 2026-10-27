@@ -1,0 +1,172 @@
+e: Failed connecting to the daemon in 4 retries
+e: backend-server/src/main/kotlin/com/red/server/auth/PublicDirectoryController.kt:60:19 Overload resolution ambiguity between candidates:
+e: backend-server/src/main/kotlin/com/red/server/auth/repository/UserAccountRepository.kt:19:5 Conflicting overloads:
+e: backend-server/src/main/kotlin/com/red/server/auth/repository/UserAccountRepository.kt:39:5 Conflicting overloads:
+e: backend-server/src/main/kotlin/com/red/server/calls/CallHistoryController.kt:165:46 Unresolved reference 'groupCallHost'.
+e: backend-server/src/main/kotlin/com/red/server/calls/CallHistoryController.kt:167:50 No parameter with name 'ignoreCase' found.
+e: backend-server/src/main/kotlin/com/red/server/calls/CallHistoryController.kt:171:42 Unresolved reference 'addGroupCallMembers'.
+e: backend-server/src/main/kotlin/com/red/server/calls/CallHistoryController.kt:178:48 Unresolved reference 'groupCallSize'.
+e: backend-server/src/main/kotlin/com/red/server/calls/CallHistoryController.kt:179:75 Unresolved reference 'MAX_GROUP_CALL_MEMBERS'.
+e: backend-server/src/main/kotlin/com/red/server/calls/CallRingExpiryJob.kt:15:30 Unresolved reference 'cleanupStaleGroups'.
+e: backend-server/src/main/kotlin/com/red/server/calls/ConferenceController.kt:597:27 Unresolved reference 'deliverInvite'.
+e: backend-server/src/main/kotlin/com/red/server/calls/ConferenceController.kt:695:13 Unresolved reference 'signaling'.
+e: backend-server/src/main/kotlin/com/red/server/calls/ConferenceController.kt:753:36 Unresolved reference 'signaling'.
+e: backend-server/src/main/kotlin/com/red/server/calls/ConferenceController.kt:769:34 Unresolved reference 'signaling'.
+e: backend-server/src/main/kotlin/com/red/server/calls/LiveStreamController.kt:210:27 Unresolved reference 'deliverInvite'.
+e: backend-server/src/main/kotlin/com/red/server/calls/LiveStreamService.kt:282:27 Unresolved reference 'deliverSignal'.
+e: backend-server/src/main/kotlin/com/red/server/calls/SfuTicketController.kt:79:44 Unresolved reference 'groupCallHost'.
+e: backend-server/src/main/kotlin/com/red/server/calls/SfuTicketController.kt:80:28 Unresolved reference 'groupCallHost'.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:49:79 Unresolved reference 'MAX_GROUP_CALL_MEMBERS'.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:239:21 No parameter with name 'callerId' found.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:240:21 No parameter with name 'calleeId' found.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:241:21 No parameter with name 'peerLabel' found.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:242:21 No parameter with name 'callType' found.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:250:21 No parameter with name 'offeredCallId' found.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:250:21 No value passed for parameter 'initiator'.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:250:21 No value passed for parameter 'target'.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:250:21 No value passed for parameter 'targetLabel'.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:250:21 No value passed for parameter 'type'.
+e: backend-server/src/main/kotlin/com/red/server/calls/UnifiedCallDeliveryService.kt:295:25 Unresolved reference 'markRinging'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:42:14 Unresolved reference 'orElseThrow'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:45:29 Unresolved reference 'isBlocked'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:57:23 Unresolved reference 'storeCallOffer'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:91:37 Unresolved reference 'getGroupCallMembers'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:93:53 Unresolved reference 'isBlocked'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:128:35 Unresolved reference 'takeCallOffer'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:135:23 Unresolved reference 'sendAnswerToCaller'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:153:35 Unresolved reference 'takeCallOffer'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:159:23 Unresolved reference 'sendRejectToCaller'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:176:23 Unresolved reference 'endCall'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:195:23 Unresolved reference 'relayIceCandidate'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:210:23 Unresolved reference 'toggleScreenShare'.
+e: backend-server/src/main/kotlin/com/red/server/calls/v1/CallsV1Controller.kt:229:41 Unresolved reference 'startRecording'.
+e: backend-server/src/main/kotlin/com/red/server/config/RedisPubSubConfig.kt:63:34 Overload resolution ambiguity between candidates:
+e: backend-server/src/main/kotlin/com/red/server/config/RedisPubSubConfig.kt:78:30 Overload resolution ambiguity between candidates:
+e: backend-server/src/main/kotlin/com/red/server/media/v1/MediaV1Controller.kt:195:18 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/media/v1/MediaV1Controller.kt:208:22 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:3:22 Unresolved reference 'annotation'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:74:22 Unresolved reference 'ROOM_ID_REGEX'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:76:98 Unresolved reference 'MAX_GROUP_CALL_MEMBERS'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:321:21 Unresolved reference 'TERMINAL_TYPES'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:331:21 Unresolved reference 'TERMINAL_TYPES'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:335:13 Unresolved reference 'targets'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:335:30 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:335:62 Cannot infer type for value parameter 'target'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:335:72 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:335:93 Unresolved reference 'sendMessage'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:419:39 Unresolved reference 'PENDING_TTL_SECONDS'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:420:51 Unresolved reference 'MAX_PENDING_PER_USER'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:452:5 Conflicting overloads:
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:456:28 Unresolved reference 'TERMINAL_TYPES'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:463:5 Conflicting overloads:
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:467:28 Unresolved reference 'TERMINAL_TYPES'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:9 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:16 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:17 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:24 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:25 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:34 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:34 Function declaration must have a name.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:473:36 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:474:5 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:479:23 Unresolved reference 'liveSessions'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:481:13 Unresolved reference 'enqueue'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:482:13 Unresolved reference 'notifications'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:485:20 Unresolved reference 'objectMapper'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:486:27 Cannot infer type for value parameter 'target'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:486:37 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:486:58 Unresolved reference 'sendMessage'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:518:24 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:518:51 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:34 Unresolved reference 'members'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:52 Inapplicable candidate(s): fun plus(other: Any?): String
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:65 Unresolved reference 'host'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:71 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:71 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:75 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:77 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:519:93 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:520:26 Unresolved reference 'isNotBlank'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:520:41 Unresolved reference 'distinct'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:522:20 Unresolved reference 'MAX_GROUP_CALL_MEMBERS'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:525:13 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:527:13 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:527:53 No parameter with name 'members' found.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:527:73 Unresolved reference 'members'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:527:90 Unresolved reference 'distinct'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:539:16 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:539:39 Unresolved reference 'host'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:539:47 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:539:79 Unresolved reference 'host'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:545:20 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:545:45 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:546:23 Unresolved reference 'members'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:546:38 Unresolved reference 'host'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:546:53 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:546:83 Unresolved reference 'size'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:565:21 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:565:41 Cannot infer type for implicit value parameter 'it'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:565:41 Operator call 'component1()' is ambiguous for destructuring of type '??? (Unknown type for value parameter <destruct>)'. Applicable candidates:
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:565:41 Operator call 'component2()' is ambiguous for destructuring of type '??? (Unknown type for value parameter <destruct>)'. Applicable candidates:
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:566:38 Unresolved reference 'members'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:566:53 Unresolved reference 'host'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:566:68 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:567:33 Unresolved reference 'liveSessions'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:567:46 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:568:11 Unresolved reference 'keys'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:569:25 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:569:36 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:569:36 'fun <T> MutableList<T>.remove(index: Int): T' is deprecated. Use removeAt(index) instead.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:569:43 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:578:30 Unresolved reference 'sendError'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:580:14 Unresolved reference 'ROOM_ID_REGEX'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:580:49 Unresolved reference 'sendError'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:588:9 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:589:9 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:589:39 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:13 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:39 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:73 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:73 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:73 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:77 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:79 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:90 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:90 'fun <T> MutableList<T>.remove(index: Int): T' is deprecated. Use removeAt(index) instead.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:590:100 Unresolved reference 'key'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:591:9 Unresolved reference 'enqueue'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:595:21 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:596:19 Unresolved reference 'expiresAt'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:596:56 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:597:20 Unresolved reference 'targetRedId'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:598:9 Unresolved reference 'callOffers'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:599:9 Unresolved reference 'dropPending'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:600:16 Return type mismatch: expected 'StoredCallOffer?', actual 'MatchGroup'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:604:23 Unresolved reference 'liveSessions'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:605:9 Unresolved reference 'dropPending'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:609:9 Unresolved reference 'dropPending'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:610:9 Unresolved reference 'activeCalls'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:614:9 Unresolved reference 'dropPending'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:615:9 Unresolved reference 'activeCalls'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:616:9 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:616:23 Unresolved reference 'history'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:631:20 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:631:45 Unresolved reference 'groupRooms'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:632:22 Unresolved reference 'members'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:632:37 Unresolved reference 'host'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:632:52 Unresolved reference 'it'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:639:16 Return type mismatch: expected 'String', actual 'Serializable & Comparable<File & String>'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:639:30 Unresolved reference 'roomAliases'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:639:116 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:661:5 Modifier 'companion' is not applicable inside 'file'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:661:21 Syntax error: Name expected.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:670:1 Syntax error: Expecting a top level declaration.
+e: backend-server/src/main/kotlin/com/red/server/websocket/CallWebSocketHandler.kt:699:2 Unresolved reference 'JsonIgnoreProperties'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/ConferenceWebSocketHandler.kt:3:22 Unresolved reference 'annotation'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/ConferenceWebSocketHandler.kt:677:13 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'MutableSet<WebSocketSession>?'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/ConferenceWebSocketHandler.kt:679:33 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'MutableSet<WebSocketSession>?'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/ConferenceWebSocketHandler.kt:685:45 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'MutableSet<WebSocketSession>?'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/ConferenceWebSocketHandler.kt:699:17 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'MutableSet<WebSocketSession>?'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/ConferenceWebSocketHandler.kt:791:2 Unresolved reference 'JsonIgnoreProperties'.
+e: backend-server/src/main/kotlin/com/red/server/websocket/RedMasterHandler.kt:305:5 Conflicting overloads:
+e: backend-server/src/main/kotlin/com/red/server/websocket/RedMasterHandler.kt:389:5 Conflicting overloads:

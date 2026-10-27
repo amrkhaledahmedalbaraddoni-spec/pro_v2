@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- P2-LAN: مكالمات نفس الواي فاي — NSD/mDNS يتطلب MulticastLock (على API 37+ يلزم أيضًا ACCESS_LOCAL_NETWORK وقت التشغيل — انظر أدناه) -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Android 17 (API 37): الوصول إلى الشبكة المحلية لم يعد ضمنيًا مع INTERNET
+         لمن يستهدف SDK 37+. بدونه يُحجب اكتشاف الخادم المحلي والاتصال به بصمت تام.
+         (إنقاذ من PR #55 — arena/01a0a0cf — 2026-09-15) -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- يُطلب وقت التشغيل في MainActivity.onStart (SDK 37+ فقط) عبر localNetworkPermission. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Android 13+ granular media — إصلاح P0: منتقي الوسائط كان يرجع SecurityException -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Android 14 partial access -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <!-- Android 14/15 FGS للرفع والتشغيل في الخلفية -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <!-- مشاركة الشاشة داخل مكالمة/اجتماع Zoom: ScreenShareHelper يستخدم MediaProjection
+         داخل foreground service؛ Android 10+ يفرض هذا النوع صراحةً وإلا فشل الالتقاط. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- P0 2026-09-27: لطلب إعفاء البطارية (نافذة النظام) ومنع قتل السوكت خلفياً. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- أذن انبثاق الشاشات فوق التطبيقات الأخرى عند ورود مكالمة طارئة أو عادية على أجهزة Vivo/Xiaomi/Samsung -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- الرسائل المجدولة: منبه دقيق عبر AlarmManager (يُستخدم مع fallback إلى WorkManager) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <application
+        android:name=".YounesApplication"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:usesCleartextTraffic="${usesCleartext}"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.Younes"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true"
+        android:localeConfig="@xml/locales_config">
+        <service
+            android:name=".calls.YounesCallService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone|phoneCall|mediaProjection" />
+        <service
+            android:name=".calls.ConferenceService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone|phoneCall|mediaProjection" />
+        <service
+            android:name=".calls.LiveStreamService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone|phoneCall|mediaProjection" />
+        <service
+            android:name=".calls.GroupCallService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone|phoneCall|mediaProjection" />
+        <!-- Zoom: اجتماعات مستقلة حتى 100 مشارك. كانت الخدمة غير مُعلَنة إطلاقاً
+             فكان تشغيلها يرمي ServiceNotFound؛ mediaProjection لمشاركة الشاشة داخلها. -->
+        <service
+            android:name=".calls.ZoomGroupCallService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone|mediaProjection" />
+        <!-- LEGENDARY FIX (مكتشف على الجهاز): خدمة WorkManager الأمامية بنوع dataSync —
+             بدونه ينهار أي Worker مُستعجل بـ IllegalArgumentException على Android 14+.
+             (الرفع/المزامنة عبر Workers تُجدول من YounesApplication — لا خدمات مخصصة.) -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge"
+            tools:replace="android:foregroundServiceType" />
+        <service
+            android:name=".calls.YounesConnectionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".core.RedConnectionService"
+            android:exported="false"
+            android:foregroundServiceType="remoteMessaging" />
+
+        <receiver
+            android:name=".calls.CallBootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".core.network.SovereignNotificationRouter"
+            android:exported="false"
+            android:foregroundServiceType="remoteMessaging" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.red.sovereign.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Deep links: younes://groupcall, younes://livestream, red://join, https://red.ly/g -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="younes" />
+                <data android:scheme="red" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="red.ly" android:pathPrefix="/g" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".calls.IncomingCallActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Younes"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:supportsPictureInPicture="false"
+            android:showForAllUsers="true"
+            android:turnScreenOn="true"
+            android:showWhenLocked="true" />
+
+
+        <receiver
+            android:name=".calls.ScheduledCallReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        <!-- P0: مستقبل أزرار إشعارات المكالمات (كان غير معلن — الأزرار ميتة والتطبيق مقتول) -->
+        <receiver android:name=".calls.CallNotificationActionReceiver" android:exported="false" />
+        <!-- الرسائل المجدولة: مستقبل المنبه الدقيق (معرف في features.chat.ScheduledMessagesScreen.kt:129) -->
+        <receiver
+            android:name=".features.chat.ScheduledMessageAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        <!-- Sovereign push: UnifiedPush receiver (self-hosted distributor, no Google push). -->
+        <service
+            android:name=".push.RedPushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.unifiedpush.android.connector.PUSH_EVENT" />
+            </intent-filter>
+        </service>
+</application>
+</manifest>

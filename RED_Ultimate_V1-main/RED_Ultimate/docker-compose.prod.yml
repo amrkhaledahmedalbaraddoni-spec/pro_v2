@@ -1,0 +1,227 @@
+# RED Sovereign — Docker Compose Production Override
+# Extends base docker-compose.yml with production settings
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Config paths are canonical: infrastructure/observability/** (single source of
+# truth). The legacy monitoring/** copies are kept for reference only.
+
+services:
+  # ── coturn TURN/STUN ────────────────────────────────────────────────
+  # لا نُعيد تعريف الصورة/المنافذ/الأمر هنا.
+  #
+  # كان هذا القسم يُكرّر coturn بالكامل بـ:
+  #   --lt-cred-mech --user=${TURN_USERNAME}:${TURN_PASSWORD}
+  #   --no-tls --no-dtls   +   منافذ 443/80
+  # وهذا تعارض حقيقي قاتل للبث:
+  #   1) الباك-اند يصدر credentials بـ hmac من TURN_SECRET (static-auth-secret،
+  #      application.yml: red.turn.secret). مع --lt-cred-mech تُرفض تلك
+  #      البيانات (401) فيسقط relay ⇒ الكاميرا/الفيديو لا يظهران في المكالمات
+  #      والبث المباشر على الشبكات المقيّدة.
+  #   2) --no-tls يقتل TURNS على 5349 رغم إعلانه في ports ⇒ عميل TLS يفشل.
+  #   3) 443/80 محجوزان لـ nginx ⇒ "port is already allocated".
+  #
+  # الإصلاح: نرث أمر ومصادقة ومنافذ الأساس (docker-compose.yml) ونضيف فقط
+  # ما يخصّ الإنتاج بأمان.
+  coturn:
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/3478' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: red-prometheus
+    restart: unless-stopped
+    # استخدم deploy.resources بدل mem_limit: ملف observability يضع
+    # deploy.resources.limits.memory، وcompose يرفض اجتماع الشكلين على
+    # الخدمة نفسها ("can't set distinct values on 'mem_limit' and
+    # 'deploy.resources.limits.memory'") وهو ما كان يُسقط
+    # "-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.observability.yml".
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      # admin-api REMOVED: unnecessary remote write/delete surface in prod.
+    # No published ports: monitoring stays inside red-net (via Nginx allowlist only).
+    expose:
+      - "9090"
+    volumes:
+      - ./infrastructure/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - red-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    container_name: red-alertmanager
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    # Internal only — no host port.
+    expose:
+      - "9093"
+    volumes:
+      - ./infrastructure/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - red-net
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: red-grafana
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    # Internal only — expose via Nginx reverse-proxy, not host port.
+    expose:
+      - "3000"
+    volumes:
+      - ./infrastructure/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infrastructure/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - red-net
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Node Exporter
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: red-node-exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    pid: host
+    network_mode: host
+    volumes:
+      - /:/host:ro,rslave
+      - /proc:/host/proc:ro,rslave
+      - /sys:/host/sys:ro,rslave
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--web.listen-address=127.0.0.1:9100'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    # LEGENDARY FIX: network_mode:host يتعارض مع networks (compose يرفض المشروع كله)
+    # node-exporter بهوست الشبكة يرى red-net عبر المضيف — نحذف networks ونبقي host.
+
+  # cAdvisor
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: red-cadvisor
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    privileged: true
+    pid: host
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    # Internal only — no host port.
+    expose:
+      - "8080"
+    networks:
+      - red-net
+
+  # Exporters
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: red-postgres-exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    environment:
+      - DATA_SOURCE_NAME=postgresql://admin:${DB_PASSWORD:?DB_PASSWORD is required}@db-postgres:5432/red_sovereign?sslmode=disable
+    expose:
+      - "9187"
+    networks:
+      - red-net
+    depends_on:
+      - db-postgres
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.66.0
+    container_name: red-redis-exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    environment:
+      - REDIS_ADDR=cache-redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    expose:
+      - "9121"
+    networks:
+      - red-net
+    depends_on:
+      - cache-redis
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4.2
+    container_name: red-nginx-exporter
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    environment:
+      - NGINX_SCRAPE_URI=http://nginx:80/stub_status
+    expose:
+      - "9113"
+    networks:
+      - red-net
+    depends_on:
+      - nginx
+
+volumes:
+  prometheus-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+  grafana-data:
+    driver: local

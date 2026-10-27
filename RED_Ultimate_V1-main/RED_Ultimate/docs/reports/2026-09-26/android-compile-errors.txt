@@ -1,0 +1,445 @@
+e: red-app/src/main/java/com/red/sovereign/MainActivity.kt:35:35 Unresolved reference 'SovereignBackground'.
+e: red-app/src/main/java/com/red/sovereign/MainActivity.kt:109:21 Unresolved reference 'SovereignBackground'.
+e: red-app/src/main/java/com/red/sovereign/MainActivity.kt:111:25 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/MainActivity.kt:121:33 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/MainActivity.kt:126:54 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/MainActivity.kt:128:32 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:51:27 Unresolved reference 'TranslationAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:52:27 Unresolved reference 'SummarizationAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:54:27 Unresolved reference 'SmartPollAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:55:27 Unresolved reference 'SecurityThreatAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:56:27 Unresolved reference 'MediaTaggingAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:57:27 Unresolved reference 'SmartSearchAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:58:27 Unresolved reference 'VoiceTranscriptionAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:59:27 Unresolved reference 'EventReminderAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:60:27 Unresolved reference 'AnalyticsInsightAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:61:27 Unresolved reference 'CodeAssistAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:62:27 Unresolved reference 'SupportChatAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:63:27 Unresolved reference 'GamificationAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:66:27 Unresolved reference 'ComplianceAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:67:27 Unresolved reference 'ThemePersonalizationAgent'.
+e: red-app/src/main/java/com/red/sovereign/agents/SovereignAgentManager.kt:68:27 Unresolved reference 'DiagnosticsAgent'.
+e: red-app/src/main/java/com/red/sovereign/calls/CallComponents.kt:174:21 Overload resolution ambiguity between candidates:
+e: red-app/src/main/java/com/red/sovereign/calls/CallComponents.kt:284:1 Conflicting overloads:
+e: red-app/src/main/java/com/red/sovereign/calls/CallTransferScreen.kt:338:12 Redeclaration:
+e: red-app/src/main/java/com/red/sovereign/calls/ConferenceService.kt:710:5 'onLobbyState' overrides nothing.
+e: red-app/src/main/java/com/red/sovereign/calls/ConferenceSignalingClient.kt:43:12 Redeclaration:
+e: red-app/src/main/java/com/red/sovereign/calls/ConferenceSignalingClient.kt:187:55 Argument type mismatch: actual type is 'String', but 'Boolean' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/ConferenceSignalingClient.kt:187:67 Argument type mismatch: actual type is 'Int', but 'List<String>' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/GroupCallInviteScreen.kt:431:12 Redeclaration:
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:86:53 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:96:49 Unresolved reference 'name'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:99:45 Unresolved reference 'name'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:121:48 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:122:83 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:122:164 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:122:216 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:194:42 Unresolved reference 'name'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:197:38 Unresolved reference 'name'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:206:34 Unresolved reference 'name'.
+e: red-app/src/main/java/com/red/sovereign/calls/ImprovedConferenceScreen.kt:219:12 Redeclaration:
+e: red-app/src/main/java/com/red/sovereign/calls/IncomingCallActivity.kt:165:27 Unresolved reference 'meetingId'.
+e: red-app/src/main/java/com/red/sovereign/calls/IncomingCallActivity.kt:168:27 Unresolved reference 'zoomHostId'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:10:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:11:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:12:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:13:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:14:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:15:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:16:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:17:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:33:35 Unresolved reference 'SpeechRecognizer'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:38:37 Unresolved reference 'LanguageIdentifier'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:85:27 Unresolved reference 'close'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:87:29 Unresolved reference 'close'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:95:30 Unresolved reference 'LanguageIdentification'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:96:13 Unresolved reference 'LanguageIdentificationOptions'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:102:23 Unresolved reference 'SpeechRecognizerOptions'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:103:23 Unresolved reference 'SpeechRecognitionModel'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:107:28 Unresolved reference 'SpeechRecognition'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:144:26 Unresolved reference 'ByteBuffer'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:144:64 Unresolved reference 'ByteOrder'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:156:57 Unresolved reference 'identifyLanguage'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:157:56 Unresolved reference 'isNotEmpty'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:158:52 No 'get' operator method providing array access.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:168:27 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:168:27 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:168:27 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:168:33 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:171:45 Unresolved reference 'recognize'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:180:49 Unresolved reference 'SpeechRecognitionResult'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:181:27 Unresolved reference 'text'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:184:30 Unresolved reference 'isFinal'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:216:17 Unresolved reference 'SpeechRecognition'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:217:21 Unresolved reference 'SpeechRecognizerOptions'.
+e: red-app/src/main/java/com/red/sovereign/calls/LiveCaptionManager.kt:218:35 Unresolved reference 'SpeechRecognitionModel'.
+e: red-app/src/main/java/com/red/sovereign/calls/ModernCallScreens.kt:196:25 Overload resolution ambiguity between candidates:
+e: red-app/src/main/java/com/red/sovereign/calls/ModernCallScreens.kt:350:1 Conflicting overloads:
+e: red-app/src/main/java/com/red/sovereign/calls/RnNoiseProcessor.kt:51:27 Argument type mismatch: actual type is 'FloatArray', but 'Int' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/RnNoiseProcessor.kt:56:27 Argument type mismatch: actual type is 'FloatArray', but 'Int' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/UnifiedCallOrchestrator.kt:180:31 Argument type mismatch: actual type is 'String?', but 'String' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/UnifiedCallOrchestrator.kt:191:31 Argument type mismatch: actual type is 'String?', but 'String' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/UnifiedCallOrchestrator.kt:203:29 Argument type mismatch: actual type is 'String?', but 'String' was expected.
+e: red-app/src/main/java/com/red/sovereign/calls/UnifiedCallOrchestrator.kt:261:39 Unresolved reference 'end'.
+e: red-app/src/main/java/com/red/sovereign/calls/YounesCallService.kt:174:28 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'String?'.
+e: red-app/src/main/java/com/red/sovereign/calls/YounesCallService.kt:187:21 Operator '==' cannot be applied to 'ConnectionStatusRepository.Status' and 'ConnectionStatusRepository.ServerUiState'.
+e: red-app/src/main/java/com/red/sovereign/calls/YounesCallService.kt:1137:17 Operator '==' cannot be applied to 'ConnectionStatusRepository.Status' and 'ConnectionStatusRepository.ServerUiState'.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:374:25 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:376:52 None of the following candidates is applicable:
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:379:15 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:379:15 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:379:15 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:379:19 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:381:30 Unresolved reference 'getColumnIndexOrThrow'.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:382:27 Unresolved reference 'moveToNext'.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:382:52 Unresolved reference 'getString'.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:385:11 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:385:11 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:385:24 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/RedConnectionService.kt:386:20 Method 'iterator()' is ambiguous for this expression. Applicable candidates:
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:117:96 'fun parse(mediaType: String): MediaType?' is deprecated. moved to extension function.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:121:96 'fun parse(mediaType: String): MediaType?' is deprecated. moved to extension function.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:130:41 'fun body(): ResponseBody' is deprecated. moved to val.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:133:44 'fun code(): Int' is deprecated. moved to val.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:135:42 'fun code(): Int' is deprecated. moved to val.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:154:33 'fun body(): ResponseBody' is deprecated. moved to val.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:158:44 'fun code(): Int' is deprecated. moved to val.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:160:42 'fun code(): Int' is deprecated. moved to val.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:163:35 Argument type mismatch: actual type is 'String?', but 'String' was expected.
+e: red-app/src/main/java/com/red/sovereign/core/UnifiedApiClient.kt:176:32 'fun <T> async(context: CoroutineContext = ..., start: CoroutineStart = ..., block: suspend CoroutineScope.() -> T): Deferred<T>' is deprecated. 'async' can not be called without the corresponding coroutine scope. Consider wrapping 'async' in 'coroutineScope { }', using 'runBlocking { }', or using some other 'CoroutineScope'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:58:9 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:59:52 None of the following candidates is applicable:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:62:25 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:62:25 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:62:25 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:62:29 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:64:30 Unresolved reference 'getColumnIndexOrThrow'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:65:27 Unresolved reference 'moveToNext'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:65:52 Unresolved reference 'getString'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:68:27 Cannot infer type for value parameter 'id'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MediaUploadWorker.kt:69:65 Suspension functions can only be called within coroutine body.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:59:46 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:60:52 None of the following candidates is applicable:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:61:15 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:61:15 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:61:15 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:61:19 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:61:28 Unresolved reference 'moveToFirst'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:61:46 Unresolved reference 'getInt'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:79:27 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:80:52 None of the following candidates is applicable:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:83:25 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:83:25 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:83:25 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:83:29 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:85:30 Unresolved reference 'getColumnIndexOrThrow'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:86:27 Unresolved reference 'moveToNext'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:86:52 Unresolved reference 'getString'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:90:44 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:90:63 Cannot infer type for value parameter 'id'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:91:35 Suspension functions can only be called within coroutine body.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:93:11 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:93:11 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:93:24 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:94:61 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:98:39 Unresolved reference 'size'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:98:110 Unresolved reference 'size'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:101:25 Method 'iterator()' is ambiguous for this expression. Applicable candidates:
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:104:41 'operator' modifier is required on 'fun <T> Comparable<T>.compareTo(other: T): Int'.
+e: red-app/src/main/java/com/red/sovereign/core/workers/MessageRecoveryWorker.kt:167:120 Unresolved reference 'size'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:35:37 Unresolved reference 'AdminViewModel'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:36:15 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:36:18 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:36:28 Unresolved reference 'systemStats'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:36:40 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:37:22 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:37:25 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:37:35 Unresolved reference 'pendingUsers'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:37:48 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:38:15 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:38:18 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:38:28 Unresolved reference 'users'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:38:34 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:39:19 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:39:22 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:39:32 Unresolved reference 'isLoading'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:39:42 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:40:15 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:40:18 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:40:28 Unresolved reference 'error'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:40:34 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:41:23 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:41:26 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:41:36 Unresolved reference 'actionMessage'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:41:50 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:45:27 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:48:13 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:48:49 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:49:17 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:49:53 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:52:25 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:55:13 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:55:49 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:56:17 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:56:50 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:57:17 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:73:46 Unresolved reference 'refreshDashboard'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:86:40 Unresolved reference 'refreshDashboard'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:91:31 Unresolved reference 'refreshDashboard'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:101:24 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:101:24 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:101:30 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:108:44 Unresolved reference 'clearActionMessage'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:124:44 Unresolved reference 'clearError'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:124:68 Unresolved reference 'refreshDashboard'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:134:37 Unresolved reference 'refreshDashboard'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:147:57 Unresolved reference 'usersCount'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:148:56 Unresolved reference 'activeCalls'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:152:62 Unresolved reference 'activeStreams'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:162:85 Function invocation 'size(...)' expected.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:173:62 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:175:32 Argument type mismatch: actual type is 'Int', but 'PendingUser' was expected.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:176:49 Unresolved reference 'approveUser'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:176:66 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:177:58 Unresolved reference 'rejectUser'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:177:74 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:187:83 Function invocation 'size(...)' expected.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:198:57 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:200:32 Argument type mismatch: actual type is 'Int', but 'UserOverview' was expected.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:201:48 Unresolved reference 'deleteUser'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:201:64 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:202:49 Unresolved reference 'suspendUser'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:202:66 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:203:45 Unresolved reference 'banUser'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:203:58 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:204:47 Unresolved reference 'unbanUser'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:204:62 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:205:54 Unresolved reference 'setUserRole'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminDashboardScreen.kt:205:71 Unresolved reference 'id'.
+e: red-app/src/main/java/com/red/sovereign/features/admin/AdminViewModel.kt:391:1 Syntax error: Unclosed comment.
+e: red-app/src/main/java/com/red/sovereign/features/channels/ChannelModels.kt:286:1 This class is not serializable automatically because it has primary constructor parameters that are not properties
+e: red-app/src/main/java/com/red/sovereign/features/channels/ChannelModels.kt:300:5 Primary constructor of data class must only have property ('val' / 'var') parameters.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:66:30 Syntax error: Expecting ';' after the last enum entry or '}' to close enum class body.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:249:50 Unresolved reference 'Result'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:255:27 Unresolved reference 'Result'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:257:27 Unresolved reference 'Result'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:296:33 Unresolved reference 'width'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:405:14 Unresolved reference 'background'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:414:20 No parameter with name 'crossAxisSize' found.
+e: red-app/src/main/java/com/red/sovereign/features/chat/DisappearingMessages.kt:414:36 Unresolved reference 'CrossAxisSize'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:7:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:8:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:9:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:10:19 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:78:52 Unresolved reference 'Translator'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:79:43 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:100:41 Unresolved reference 'translate'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:118:41 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:134:28 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:135:43 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:137:28 Cannot infer type for value parameter 'lang'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:138:28 Unresolved reference 'bcp47Tag'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:143:22 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:152:24 Unresolved reference 'downloadModelIfNeeded'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:164:47 Unresolved reference 'mlkit'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:166:46 Unresolved reference 'close'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:173:80 Unresolved reference 'Translator'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:175:28 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:176:27 Unresolved reference 'TranslatorOptions'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:180:13 Unresolved reference 'Translation'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:184:58 Unresolved reference 'Translator'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:186:24 Unresolved reference 'downloadModelIfNeeded'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:195:29 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:196:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:197:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:198:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:199:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:200:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:201:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:202:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:203:41 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:204:35 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:205:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:206:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:207:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:208:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:209:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:210:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:211:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:212:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:213:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:214:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:215:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:216:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:217:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:218:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:219:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:220:21 Unresolved reference 'TranslateLanguage'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:238:28 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:238:36 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:238:41 Unresolved reference 'close'.
+e: red-app/src/main/java/com/red/sovereign/features/chat/MessageTranslation.kt:307:49 Unresolved reference 'colors'.
+e: red-app/src/main/java/com/red/sovereign/features/profile/BackupManager.kt:299:38 Argument type mismatch: actual type is 'String', but 'SQLiteDatabase.CursorFactory!' was expected.
+e: red-app/src/main/java/com/red/sovereign/features/profile/BackupManager.kt:299:50 Null cannot be a value of a non-null type 'Int'.
+e: red-app/src/main/java/com/red/sovereign/features/profile/BackupManager.kt:300:17 Argument type mismatch: actual type is 'Int', but 'DatabaseErrorHandler!' was expected.
+e: red-app/src/main/java/com/red/sovereign/settings/DeviceSettingsViewModel.kt:48:74 Argument type mismatch: actual type is 'JsonElement', but 'DeserializationStrategy<List<SettingsDevice>>' was expected.
+e: red-app/src/main/java/com/red/sovereign/settings/DeviceSettingsViewModel.kt:48:74 No value passed for parameter 'element'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:27:53 Unresolved reference 'DiscoveredServer'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:28:53 Unresolved reference 'NetworkState'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:35:23 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:35:26 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:35:48 Unresolved reference 'networkStates'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:35:62 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:37:22 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:37:25 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:37:47 Unresolved reference 'scanProgress'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:37:60 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:38:20 Property delegate must have a 'getValue(Nothing?, KProperty0<??? (Unknown type for type parameter T)>)' method. None of the following functions is applicable:
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:38:23 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:38:45 Unresolved reference 'isScanning'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:38:56 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:73:55 Unresolved reference 'scanForServers'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:74:31 Cannot access 'fun WideNavigationRailValue.not(): WideNavigationRailValue': it is internal in file.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:74:31 Argument type mismatch: actual type is 'WideNavigationRailValue', but 'Boolean' was expected.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:128:53 Argument type mismatch: actual type is 'String', but 'DiscoveredServer' was expected.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:154:32 Unresolved reference 'SovereignRedPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:154:53 Unresolved reference 'SovereignRedCobalt'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:194:56 Unresolved reference 'NetworkState'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:195:37 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:195:37 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:195:37 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:195:49 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:195:54 Unresolved reference 'quality'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:196:45 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:213:25 Unresolved reference 'SovereignRedPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:218:38 Unresolved reference 'quality'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:219:25 Unresolved reference 'SovereignRedEmerald'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:224:49 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:224:75 Unresolved reference 'it'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:225:25 Unresolved reference 'SovereignRedGold'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:249:55 Unresolved reference 'NetworkState'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:265:41 Unresolved reference 'NetworkState'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:266:21 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:274:42 Unresolved reference 'NetworkState'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:275:32 Unresolved reference 'type'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:284:24 'when' expression must be exhaustive. Add an 'else' branch.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:284:36 Unresolved reference 'quality'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:285:59 Unresolved reference 'SovereignRedEmerald'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:287:54 Unresolved reference 'SovereignRedGold'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:289:46 Unresolved reference 'NONE'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:313:28 Unresolved reference 'type'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:318:47 Unresolved reference 'isConnected'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:318:60 Unresolved reference 'SovereignRedEmerald'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:322:26 Unresolved reference 'ipAddress'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:322:58 Unresolved reference 'quality'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:322:77 Unresolved reference 'bandwidth'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:333:24 Unresolved reference 'quality'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:357:53 Unresolved reference 'SovereignRedPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:357:74 Unresolved reference 'SovereignRedCobalt'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:371:32 Unresolved reference 'isYounesVerified'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:372:66 Unresolved reference 'SovereignRedEmerald'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:376:31 Unresolved reference 'url'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:376:47 Unresolved reference 'discoveryMethod'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:376:75 Unresolved reference 'latencyMs'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:383:30 None of the following candidates is applicable:
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:384:44 Unresolved reference 'isYounesVerified'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:384:62 Unresolved reference 'SovereignRedEmerald'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:384:82 Cannot infer type for type parameter 'K'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:384:82 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:384:82 This declaration needs opt-in. Its usage must be marked with '@kotlin.ExperimentalStdlibApi' or '@OptIn(kotlin.ExperimentalStdlibApi::class)'
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:391:40 Unresolved reference 'isYounesVerified'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:394:48 Unresolved reference 'isYounesVerified'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:394:66 Unresolved reference 'SovereignRedEmerald'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:399:35 Unresolved reference 'ipAddress'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:407:88 Unresolved reference 'url'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:411:67 Unresolved reference 'SovereignRedPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:423:30 Unresolved reference 'SovereignRedPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:423:30 Argument type mismatch: actual type is 'Map.Entry<uninferred K (of fun <K, V> Map.Entry<K, V>.copy), uninferred V (of fun <K, V> Map.Entry<K, V>.copy)>', but 'Color' was expected.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:423:50 Cannot infer type for type parameter 'K'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:423:50 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:423:50 This declaration needs opt-in. Its usage must be marked with '@kotlin.ExperimentalStdlibApi' or '@OptIn(kotlin.ExperimentalStdlibApi::class)'
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:428:54 Unresolved reference 'SovereignRedGold'.
+e: red-app/src/main/java/com/red/sovereign/settings/ModernNetworkSettingsScreen.kt:443:45 Unresolved reference 'SovereignRedPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/SettingsScreen.kt:485:65 Unresolved reference 'YounesPrimary'.
+e: red-app/src/main/java/com/red/sovereign/settings/SettingsScreen.kt:489:64 Unresolved reference 'YounesAccent'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernAdaptiveSystem.kt:6:35 Unresolved reference 'windowsizeclass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernAdaptiveSystem.kt:43:25 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernAdaptiveSystem.kt:56:37 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernAdaptiveSystem.kt:57:39 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernAdaptiveSystem.kt:58:38 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernAdaptiveSystem.kt:59:40 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:16:35 Unresolved reference 'windowsizeclass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:17:35 Unresolved reference 'windowsizeclass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:18:35 Unresolved reference 'windowsizeclass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:82:41 Unresolved reference 'ExperimentalMaterial3WindowSizeClassApi'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:82:41 Annotation argument must be a compile-time constant.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:94:27 Unresolved reference 'calculateWindowSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:95:55 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:96:54 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:97:56 Unresolved reference 'WindowWidthSizeClass'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:288:69 Unresolved reference 'SpringSnappy'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:291:70 Unresolved reference 'SpringSnappy'.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:419:54 No parameter with name 'memberIds' found.
+e: red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt:591:60 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/RedDashboard.kt:488:63 Unresolved reference 'AdminViewModel'.
+e: red-app/src/main/java/com/red/sovereign/ui/RedDashboard.kt:489:58 Cannot infer type for type parameter 'VM'. Specify it explicitly.
+e: red-app/src/main/java/com/red/sovereign/ui/components/SovereignBottomBar.kt:74:55 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/components/SovereignFrosted.kt:15:35 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/components/SovereignFrosted.kt:95:16 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/components/SovereignTopBar.kt:65:51 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/components/SovereignUiComponents.kt:401:58 Unresolved reference 'SovereignBadgeGlowMs'.
+e: red-app/src/main/java/com/red/sovereign/ui/components/SovereignUiComponents.kt:417:58 Unresolved reference 'SovereignWaveDurationMs'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ActiveCallScreen.kt:361:48 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ActiveCallScreen.kt:449:31 Unresolved reference 'SovereignPulseDurationMs'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ActiveCallScreen.kt:458:31 Unresolved reference 'SovereignPulseDurationMs'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:517:41 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:518:41 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:519:41 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:520:41 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:521:77 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:522:62 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:712:20 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1235:45 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1236:45 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1237:45 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1238:45 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1239:72 Unresolved reference 'MessageInfoLine'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1274:1 Modifier 'private' is not applicable to 'local function'.
+e: red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt:1295:2 Syntax error: Expecting '}'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:7:33 Unresolved reference 'OptIn'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:83:9 No parameter with name 'shadow' found.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:143:9 No parameter with name 'shadow' found.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:225:17 No parameter with name 'shadow' found.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:262:17 No parameter with name 'shadow' found.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:273:48 Unresolved reference 'toArgb'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:278:27 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:279:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:280:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:281:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:282:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:283:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:284:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:285:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:286:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:287:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:288:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:289:28 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/Color.kt:290:29 Unresolved reference 'Hsv'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:490:1 This annotation is not applicable to target 'standalone object'. Applicable targets: function, type usage, type parameter, getter
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:494:72 'interface RippleTheme : Any' is deprecated. RippleTheme and LocalRippleTheme have been deprecated - they are not compatible with the new ripple implementation using the new Indication APIs that provide notable performance improvements. For a migration guide and background information, please visit developer.android.com.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:505:5 Functions which invoke @Composable functions must be marked with the @Composable annotation
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:512:32 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:513:24 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:561:28 Unresolved reference 'rememberScaledTypography'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:563:5 Unresolved reference 'CompositionLocalProvider'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:563:63 'val LocalRippleTheme: ProvidableCompositionLocal<RippleTheme>' is deprecated. RippleTheme and LocalRippleTheme have been deprecated - they are not compatible with the new ripple implementation using the new Indication APIs that provide notable performance improvements. For a migration guide and background information, please visit developer.android.com.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:564:9 @Composable invocations can only happen from the context of a @Composable function
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:573:1 Modifier 'private' is not applicable to 'local function'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:666:1 Modifier 'const' is not applicable to 'local variable'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:668:1 Modifier 'const' is not applicable to 'local variable'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:670:1 Modifier 'const' is not applicable to 'local variable'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:672:1 Modifier 'const' is not applicable to 'local variable'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:679:1 Named object 'SovereignGlassTier' cannot be local. Try to use an anonymous object instead.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/RedTheme.kt:697:2 Syntax error: Expecting '}'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/SovereignGlass.kt:85:20 Unresolved reference 'SovereignGlassTier'.
+e: red-app/src/main/java/com/red/sovereign/ui/theme/SovereignGlass.kt:106:25 Unresolved reference 'SovereignGlassTier'.

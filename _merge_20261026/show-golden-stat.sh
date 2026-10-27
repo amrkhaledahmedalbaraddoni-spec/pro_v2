@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ws="D:/RED_Golden/RED_Ultimate_V1-main/RED_Ultimate"
+git -c safe.directory="$ws" -C "$ws" diff --stat -- \
+  "README.md" \
+  "red-app/src/main/java/com/red/sovereign/ui/screens/GroupsScreen.kt" \
+  "red-app/src/main/java/com/red/sovereign/features/channels/ChannelsScreen.kt" \
+  "red-app/src/main/java/com/red/sovereign/ui/screens/ChatsScreen.kt" \
+  "red-app/src/main/java/com/red/sovereign/ui/screens/ChatThreadScreen.kt" \
+  "red-app/src/main/java/com/red/sovereign/ui/ModernRedDashboard.kt" \
+  "red-app/src/main/java/com/red/sovereign/core/MessageSender.kt" \
+  "red-app/src/main/java/com/red/sovereign/core/ChatComposer.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/YounesCallService.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/ConferenceService.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/WebRtcEngine.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/MeshRtcSession.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/LiveStreamService.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/LiveStreamSignalingClient.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/LiveKitBridge.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/SfuMediaClient.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/SfuSdpFactory.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/CallDeliveryEngine.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/GroupCallService.kt" \
+  "red-app/src/main/java/com/red/sovereign/calls/GroupChatCallCoordinator.kt" \
+  "backend-server/src/main/kotlin/com/red/server/controllers/AdminSocialController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/api/UnifiedGroupsControllerV2.kt" \
+  "backend-server/src/main/kotlin/com/red/server/admin/controller/ContentController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/api/AdminMasterController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/api/admin/RedMasterController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/controllers/AdminMonitorController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/controllers/AdminDataOverviewController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/controllers/AdminUserIntelligenceController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/admin/controller/AdminSystemOpsController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/admin/controller/AdminOpsStoresController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/admin/controller/AdminSecurityPolicyController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/admin/controller/AdminStoriesController.kt" \
+  "backend-server/src/main/kotlin/com/red/server/messaging/MessageService.kt" \
+  "backend-server/src/main/kotlin/com/red/server/auth/IdentityDirectoryController.kt" \
+  "backend-server/src/test/kotlin/com/red/server/admin/controller/AdminSecurityPolicyControllerTest.kt" \
+  "admin_dashboard/src/api.ts" \
+  "admin_dashboard/src/components/providers/ThemeProvider.tsx" \
+  "admin_dashboard/package.json" \
+  "admin_dashboard/src/App.tsx" \
+  "admin_dashboard/src/routes/_layout.tsx" \
+  "admin_dashboard/src/pages/MessagingCenter.tsx" \
+  "admin_dashboard/src/styles.css" \
+  "admin_dashboard/src/pages/security/MFAPage.tsx" \
+  "admin_dashboard/vite.config.ts" \
+  "docker-compose.dev.yml" \
+  "red-app/build.gradle.kts" \
+  "settings.gradle.kts" \
+  ".gitignore"

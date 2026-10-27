@@ -1,0 +1,345 @@
+package com.red.sovereign.auth
+
+import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.red.sovereign.core.LocalServerDiscovery
+import com.red.sovereign.auth.UserResponse
+import com.red.sovereign.core.ServerEndpoint
+import com.red.sovereign.security.SecureOkHttpClient
+import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+
+/**
+ * AuthViewModel - RED-only نظيف
+ * تم إلغاء كل ما يتعلق بالبوابات الخارجية حسب طلب المستخدم
+ * التركيز على E2EE + مكالمات يونس + مجموعات + بث + مؤتمرات
+ */
+class AuthViewModel(application: Application) : AndroidViewModel(application) {
+    private val api = AuthApi(
+        application,
+        SecureOkHttpClient.build(application, connectTimeout = 4, readTimeout = 6, writeTimeout = 4),
+    )
+    private val tokens = TokenStore(application)
+    private val keys = DeviceKeyManager(application)
+    private val discovery = LocalServerDiscovery(application)
+
+    var serverState: ServerState by mutableStateOf(ServerState.Ready(ServerEndpoint.url()))
+        private set
+
+    var state: AuthState by mutableStateOf(AuthState.Loading)
+        private set
+    private var pendingCredentials: Pair<String, String>? = null
+
+    init {
+        ServerEndpoint.initialize(application)
+        serverState = ServerState.Ready(ServerEndpoint.url())
+        restore()
+    }
+
+    fun discoverServer() = viewModelScope.launch {
+        serverState = ServerState.Discovering
+        serverState = when (val result = discovery.discover(LocalServerDiscovery.Mode.THOROUGH)) {
+            is ApiResult.Success -> ServerState.Ready(result.value)
+            is ApiResult.Error -> ServerState.Error(localize(result.message), ServerEndpoint.url())
+        }
+    }
+
+    fun setServerUrl(value: String): String? {
+        val trimmed = value.trim()
+        if (trimmed.isBlank()) return "أدخل عنوان الخادم (مثال: http://192.168.11.178:8088)"
+        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            return "يجب أن يبدأ العنوان بـ http:// أو https://"
+        }
+        return try {
+            ServerEndpoint.update(getApplication(), trimmed)
+            serverState = ServerState.Ready(ServerEndpoint.url())
+            null
+        } catch (_: Exception) {
+            "عنوان غير صالح. استخدم صيغة http://IP:8088 أو https://domain"
+        }
+    }
+
+    fun showRegister() { state = AuthState.Register }
+    fun showLogin() { state = AuthState.Login }
+    fun showRecovery() { state = AuthState.Recovery }
+    fun showWelcome() { state = AuthState.Welcome }
+
+    fun register(displayName: String, username: String, password: String) = viewModelScope.launch {
+        state = AuthState.Submitting
+        val enrollment = runCatching { withContext(Dispatchers.Default) { keys.enrollment() } }
+            .getOrElse { state = AuthState.Error("تعذر إنشاء مفاتيح التشفير المحلية"); return@launch }
+        when (val result = withServerDiscoveryRetry { api.register(RegisterRequest(username.trim(), password, displayName.trim(), enrollment)) }) {
+            is ApiResult.Success -> {
+                result.value.deviceId?.let(tokens::rememberDevice)
+                pendingCredentials = username.trim() to password
+                state = AuthState.Pending(result.value.user.redId, result.value.user.username, result.value.recoveryCodes.orEmpty())
+            }
+            is ApiResult.Error -> state = AuthState.Error(localize(result.message))
+        }
+    }
+
+    fun login(username: String, password: String) = viewModelScope.launch {
+        state = AuthState.Submitting
+        when (val result = withServerDiscoveryRetry { api.login(LoginRequest(username.trim(), password, tokens.deviceId)) }) {
+            is ApiResult.Error -> state = AuthState.Error(localize(result.message))
+            is ApiResult.Success -> applyAuth(result.value, username, password)
+        }
+    }
+
+    fun checkApproval() {
+        val credentials = pendingCredentials
+        if (credentials == null) state = AuthState.Login
+        else login(credentials.first, credentials.second)
+    }
+
+    fun recover(redId: String, code: String, newPassword: String) = viewModelScope.launch {
+        state = AuthState.Submitting
+        state = when (val result = withServerDiscoveryRetry { api.recover(PasswordRecoveryRequest(redId.trim(), code.trim(), newPassword)) }) {
+            is ApiResult.Success -> AuthState.RecoveryComplete
+            is ApiResult.Error -> AuthState.Error(localize(result.message))
+        }
+    }
+
+    /** تحديث اسم المستخدم (username) على الخادم ثم محلياً. */
+    fun updateUsername(newUsername: String, done: (Boolean, String) -> Unit = { _, _ -> }) = viewModelScope.launch {
+        val trimmed = newUsername.trim()
+        if (trimmed.length < 3 || trimmed.length > 20) { done(false, "اسم المستخدم يجب أن يكون 3-20 حرفاً"); return@launch }
+        val client = AuthorizedApiClient(TokenStore(getApplication()))
+        when (val result = client.request("PATCH", "/api/auth/username", Json.encodeToString(mapOf("username" to trimmed)))) {
+            is ApiResult.Success -> {
+                val updated = state
+                if (updated is AuthState.Authenticated) {
+                    state = updated.copy(username = trimmed)
+                    tokens.saveUsername(trimmed)
+                    done(true, "تم تحديث اسم المستخدم")
+                } else done(false, "لا يوجد حساب نشط")
+            }
+            is ApiResult.Error -> done(false, result.message ?: "فشل تحديث الاسم")
+        }
+    }
+
+    fun updateDisplayName(newName: String, done: (Boolean, String) -> Unit = { _, _ -> }) = viewModelScope.launch {
+        val trimmed = newName.trim()
+        if (trimmed.isBlank() || trimmed.length > 50) { done(false, "الاسم يجب أن يكون 1-50 حرفاً"); return@launch }
+        val client = AuthorizedApiClient(TokenStore(getApplication()))
+        when (val result = client.request("PATCH", "/api/auth/profile", Json.encodeToString(mapOf("displayName" to trimmed)))) {
+            is ApiResult.Success -> { done(true, "تم تحديث الاسم المعروض") }
+            is ApiResult.Error -> done(false, result.message ?: "فشل تحديث الاسم")
+        }
+    }
+
+    var avatarVersion by mutableStateOf(System.currentTimeMillis())
+        private set
+
+    /** تحديث الصورة الشخصية (الأفاتار) عبر حفظها محلياً فوراً ورفعها للخادم. */
+    fun updateAvatar(uri: android.net.Uri, done: (Boolean, String) -> Unit = { _, _ -> }) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        val avatarFile = java.io.File(app.filesDir, "avatar_me.jpg")
+        try {
+            app.contentResolver.openInputStream(uri)?.use { input ->
+                avatarFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            tokens.saveAvatar(avatarFile.absolutePath)
+            avatarVersion = System.currentTimeMillis()
+        } catch (e: Exception) {
+            done(false, "تعذر قراءة ملف الصورة المحدد")
+            return@launch
+        }
+
+        try {
+            val client = AuthorizedApiClient(tokens)
+            val mediaApi = com.red.sovereign.media.MediaApi(app, client)
+            val uploadResult = mediaApi.upload(uri)
+            if (uploadResult is ApiResult.Success) {
+                val objectKey = uploadResult.value.objectKey
+                tokens.saveAvatar(avatarFile.absolutePath, objectKey)
+                val currentUsername = (state as? AuthState.Authenticated)?.username.orEmpty().ifBlank { "مستخدم يونس" }
+                val payload = Json.encodeToString(mapOf("displayName" to currentUsername, "avatarUrl" to objectKey))
+                client.request("PATCH", "/api/auth/profile", payload)
+                avatarVersion = System.currentTimeMillis()
+                done(true, "تم حفظ وتحديث الصورة الشخصية بنجاح")
+            } else {
+                done(true, "تم حفظ الصورة الشخصية على جهازك بنجاح")
+            }
+        } catch (e: Exception) {
+            done(true, "تم حفظ الصورة الشخصية على جهازك بنجاح")
+        }
+    }
+
+    fun logout() {
+        tokens.clearSession()
+        pendingCredentials = null
+        state = AuthState.Welcome
+    }
+
+    private fun restore() = viewModelScope.launch {
+        val refresh = tokens.refreshToken
+        val redId = tokens.redId
+        if (refresh == null || redId.isNullOrBlank()) {
+            state = AuthState.Welcome
+            discoverInBackground(LocalServerDiscovery.Mode.FAST)
+            return@launch
+        }
+        val result = withTimeoutOrNull(RESTORE_TIMEOUT_MS) { api.refresh(refresh) }
+        when (result) {
+            is ApiResult.Success -> {
+                tokens.updateTokens(result.value)
+                state = AuthState.Authenticated(tokens.redId.orEmpty(), tokens.username.orEmpty(), tokens.isAdmin)
+            }
+            is ApiResult.Error -> {
+                // P0 2026-09-27: لا خروج عند طفو السيرفر — امسح الجلسة فقط عند
+                // 401/403 مؤكد من الخادم. المهلة/الأوفلاين = بقاء مسجلاً (وضع محلي سيادي).
+                if (result.code == 401 || result.code == 403) {
+                    tokens.clearSession()
+                    state = AuthState.Welcome
+                } else {
+                    state = AuthState.Authenticated(redId, tokens.username.orEmpty(), tokens.isAdmin)
+                }
+                if (result.code == null) discoverInBackground(LocalServerDiscovery.Mode.FAST)
+            }
+            null -> {
+                // P0 2026-09-27: مهلة الاستعادة ≠ تسجيل خروج — ابقَ على الحساب المحفوظ محلياً.
+                state = AuthState.Authenticated(redId, tokens.username.orEmpty(), tokens.isAdmin)
+                discoverInBackground(LocalServerDiscovery.Mode.FAST)
+            }
+        }
+    }
+
+    private fun discoverInBackground(mode: LocalServerDiscovery.Mode) = viewModelScope.launch {
+        if (serverState is ServerState.Discovering) return@launch
+        serverState = ServerState.Discovering
+        val result = discovery.discover(mode)
+        if (result is ApiResult.Error && mode == LocalServerDiscovery.Mode.FAST) {
+            val thorough = discovery.discover(LocalServerDiscovery.Mode.THOROUGH)
+            if (thorough is ApiResult.Success) {
+                serverState = ServerState.Ready(thorough.value)
+                return@launch
+            }
+        }
+        serverState = when (result) {
+            is ApiResult.Success -> ServerState.Ready(result.value)
+            is ApiResult.Error -> ServerState.Error(localize(result.message), ServerEndpoint.url())
+        }
+    }
+
+    private fun applyAuth(response: AuthResponse, username: String, password: String) {
+        when (response.status) {
+            "APPROVED" -> {
+                tokens.save(response)
+                // Align local protocol device id with the server (see DeviceKeyManager).
+                keys.adoptProtocolDeviceId(
+                    response.user.devices.firstOrNull { it.id == response.deviceId }?.protocolDeviceId
+                )
+                pendingCredentials = null
+                state = AuthState.Authenticated(response.user.redId, response.user.username, response.user.role == "ADMIN")
+            }
+            "PENDING" -> {
+                pendingCredentials = username to password
+                state = AuthState.Pending(response.user.redId, response.user.username, emptyList())
+            }
+            "REJECTED" -> state = AuthState.Rejected(response.user.rejectionReason)
+            "SUSPENDED" -> state = AuthState.Suspended
+            "BANNED" -> state = AuthState.Banned
+            else -> state = AuthState.Error("حالة حساب غير معروفة")
+        }
+    }
+
+    private suspend fun <T> withServerDiscoveryRetry(request: suspend () -> ApiResult<T>): ApiResult<T> {
+        val first = request()
+        if (first !is ApiResult.Error || first.code != null) return first
+        serverState = ServerState.Discovering
+        val fast = discovery.discover(LocalServerDiscovery.Mode.FAST)
+        if (fast is ApiResult.Success) {
+            serverState = ServerState.Ready(fast.value)
+            return request()
+        }
+        val thorough = discovery.discover(LocalServerDiscovery.Mode.THOROUGH)
+        if (thorough is ApiResult.Success) {
+            serverState = ServerState.Ready(thorough.value)
+            return request()
+        }
+        serverState = ServerState.Error(
+            localize((thorough as? ApiResult.Error)?.message ?: "YOUNES_SERVER_NOT_FOUND"),
+            ServerEndpoint.url()
+        )
+        return first
+    }
+
+    private fun localize(value: String) = when {
+        value.contains("INVALID_CREDENTIALS", ignoreCase = true) || value.contains("401", ignoreCase = true) ->
+            "اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التأكد من البيانات والمحاولة مجدداً."
+        value.contains("NETWORK_ERROR", ignoreCase = true) || value.contains("Connection refused", ignoreCase = true) ->
+            "تعذر الاتصال بخادم يونس. يرجى التأكد من الاتصال بالشبكة أو الخادم المحلي والمحاولة مجدداً."
+        value.contains("OFFLINE", ignoreCase = true) ->
+            "لا توجد شبكة إطلاقاً (وضع طيران؟). فعّل Wi-Fi أو البيانات أو اتصل بالشبكة المحلية ثم أعد المحاولة."
+        value.contains("INVALID_RECOVERY_CODE", ignoreCase = true) ->
+            "معرّف يونس أو رمز الاستعادة غير صحيح. أعد التأكد من الرموز المحفوظة."
+        value.contains("RATE_LIMITED", ignoreCase = true) || value.contains("Too many attempts", ignoreCase = true) ->
+            "محاولات كثيرة متكررة؛ انتظر دقيقة واحدة ثم أعد المحاولة لحماية حسابك."
+        value.contains("RED_SERVER_NOT_FOUND_ON_LAN", ignoreCase = true) ||
+            value.contains("YOUNES_SERVER_NOT_FOUND", ignoreCase = true) ->
+            "لم يُعثر على خادم يونس آمن في الشبكة المحلية. تأكد من اتصال الـ Wi-Fi."
+        value.contains("already registered", ignoreCase = true) || value.contains("Username is taken", ignoreCase = true) ->
+            "اسم المستخدم هذا محجوز بالفعل؛ يرجى اختيار اسم مستخدم آخر."
+        value.contains("USERNAME_TAKEN", ignoreCase = true) ->
+            "اسم المستخدم هذا محجوز بالفعل؛ يرجى اختيار اسم مستخدم آخر."
+        value.contains("3-32 characters", ignoreCase = true) || value.contains("3-20", ignoreCase = true) ->
+            "اسم المستخدم يجب أن يكون 3-32 حرفاً إنكليزياً ويبدأ بحرف، دون مسافات أو رموز."
+        value.contains("12-128 characters", ignoreCase = true) ->
+            "كلمة المرور يجب أن تكون بين 12 و128 حرفاً وتتضمن مزيجاً من الأحرف والأرقام."
+        value.contains("contain the username", ignoreCase = true) ->
+            "كلمة المرور يجب ألا تحتوي على اسم المستخدم بداخلها لحماية حسابك."
+        value.contains("too common", ignoreCase = true) ->
+            "كلمة المرور هذه شائعة وسهلة التخمين؛ يرجى اختيار كلمة مرور أكثر تعقيداً."
+        value.contains("2-100 visible characters", ignoreCase = true) ->
+            "الاسم الظاهر يجب أن يتكون من 2 إلى 100 حرف واضح."
+        value.contains("Account is not approved", ignoreCase = true) || value.contains("PENDING_APPROVAL", ignoreCase = true) ->
+            "حسابك قيد المراجعة من الإدارة؛ ستتمكن من الدخول بعد الموافقة."
+        value.contains("Base64", ignoreCase = true) || value.contains("deviceName", ignoreCase = true) ->
+            "تعذر إنشاء مفاتيح التشفير بشكل صحيح. أعد تشغيل التطبيق وحاول مجدداً."
+        value.contains("Device enrollment is required", ignoreCase = true) ->
+            "تعذر تجهيز بيانات الجهاز المشفرة. أعد المحاولة."
+        value.contains("UNAUTHENTICATED", ignoreCase = true) ->
+            "انتهت الجلسة أو غير مصرح. يرجى تسجيل الدخول مجدداً."
+        value.contains("INVALID_REQUEST", ignoreCase = true) || value.contains("MALFORMED_JSON", ignoreCase = true) || value.contains("VALIDATION_FAILED", ignoreCase = true) ->
+            "الطلب غير صالح أو ناقص البيانات. تأكد من اتصالك بالخادم الصحيح ثم أعد المحاولة."
+        value.contains("INTERNAL_ERROR", ignoreCase = true) ->
+            "حدث خطأ داخلي في الخادم. يرجى المحاولة لاحقاً أو التواصل مع الإدارة."
+        else -> value.ifBlank { "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." }
+    }
+
+    private companion object {
+        const val RESTORE_TIMEOUT_MS = 3_500L
+    }
+}
+
+sealed interface AuthState {
+    data object Loading : AuthState
+    data object Welcome : AuthState
+    data object Register : AuthState
+    data object Login : AuthState
+    data object Recovery : AuthState
+    data object RecoveryComplete : AuthState
+    data object Submitting : AuthState
+    data class Pending(val redId: String, val username: String, val recoveryCodes: List<String>) : AuthState
+    data class Authenticated(val redId: String, val username: String, val isAdmin: Boolean = false) : AuthState
+    data class Rejected(val reason: String?) : AuthState
+    data object Suspended : AuthState
+    data object Banned : AuthState
+    data class Error(val message: String) : AuthState
+}
+
+sealed interface ServerState {
+    data object Discovering : ServerState
+    data class Ready(val url: String) : ServerState
+    data class Error(val message: String, val fallbackUrl: String) : ServerState
+}

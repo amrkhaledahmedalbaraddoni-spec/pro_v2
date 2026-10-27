@@ -1,0 +1,322 @@
+version: '3.8'
+
+# RED Sovereign - Production Ready Docker Compose
+# النسخة النهائية المتكاملة - 2026-10-26
+
+services:
+  # ========== BACKEND API ==========
+  backend:
+    build:
+      context: ./backend-server
+      dockerfile: Dockerfile
+    container_name: red-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      SPRING_APPLICATION_NAME: "RED Sovereign Backend"
+
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/red_sovereign
+      SPRING_DATASOURCE_USERNAME: red_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RedPassword2026!}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+      # Redis Cache
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+
+      # WebSocket
+      WEBSOCKET_ENABLED: "true"
+      WEBSOCKET_PORT: 8081
+
+      # Logging
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_RED: DEBUG
+
+      # Features
+      LIVESTREAM_ENABLED: "true"
+      MESSAGING_ENABLED: "true"
+      CALLS_ENABLED: "true"
+      MEDIA_ENABLED: "true"
+
+      # Security
+      SECURITY_JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this-in-production}
+      SECURITY_CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://dashboard:5173"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    volumes:
+      - ./logs/backend:/app/logs
+
+  # ========== ADMIN DASHBOARD ==========
+  dashboard:
+    build:
+      context: ./admin_dashboard
+      dockerfile: Dockerfile
+    container_name: red-dashboard
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_URL: http://localhost:8080
+      VITE_WS_URL: ws://localhost:8081
+      NODE_ENV: production
+
+    depends_on:
+      - backend
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    volumes:
+      - ./logs/dashboard:/var/log/nginx
+
+  # ========== DATABASE ==========
+  postgres:
+    image: postgres:15-alpine
+    container_name: red-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: red_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-RedPassword2026!}
+      POSTGRES_DB: red_sovereign
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U red_user -d red_sovereign"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== REDIS CACHE ==========
+  redis:
+    image: redis:7-alpine
+    container_name: red-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-RedisPassword2026!}
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== MEDIA SFU ==========
+  media-sfu:
+    build:
+      context: ./media-sfu
+      dockerfile: Dockerfile
+    container_name: red-media-sfu
+    ports:
+      - "8888:8888"
+      - "50000:50000/udp"
+      - "50001:50001/udp"
+    environment:
+      LOG_LEVEL: info
+      SFU_PORT: 8888
+      STUN_SERVER: stun.l.google.com:19302
+
+    depends_on:
+      - backend
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    volumes:
+      - ./logs/media-sfu:/var/log/media-sfu
+
+  # ========== JANUS GATEWAY ==========
+  janus:
+    build:
+      context: ./janus
+      dockerfile: Dockerfile
+    container_name: red-janus
+    ports:
+      - "8188:8188"
+      - "8189:8189"
+      - "8000:8000"
+      - "8001:8001"
+    environment:
+      JANUS_LOG_LEVEL: 4
+      JANUS_API_PORT: 8188
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    volumes:
+      - ./logs/janus:/var/log/janus
+      - ./config/janus:/etc/janus
+
+  # ========== KAMAILIO (VoIP) ==========
+  kamailio:
+    build:
+      context: ./kamailio
+      dockerfile: Dockerfile
+    container_name: red-kamailio
+    ports:
+      - "5060:5060/tcp"
+      - "5060:5060/udp"
+      - "5061:5061/tcp"
+    environment:
+      KAMAILIO_LOG_LEVEL: 3
+
+    depends_on:
+      - postgres
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+    volumes:
+      - ./logs/kamailio:/var/log/kamailio
+
+  # ========== MONITORING - PROMETHEUS ==========
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: red-prometheus
+    ports:
+      - "9090:9090"
+    environment:
+      PROMETHEUS_RETENTION: 30d
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+  # ========== MONITORING - GRAFANA ==========
+  grafana:
+    image: grafana/grafana:latest
+    container_name: red-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_INSTALL_PLUGINS: redis-datasource,grafana-piechart-panel
+      GF_SERVER_ROOT_URL: http://localhost:3000
+
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+    depends_on:
+      - prometheus
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+  # ========== LOGGING - ELK STACK (Optional) ==========
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.0.0
+    container_name: red-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.0.0
+    container_name: red-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+
+    depends_on:
+      - elasticsearch
+
+    networks:
+      - red-network
+
+    restart: unless-stopped
+
+  # ========== VOLUMES & NETWORKING ==========
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  red-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
