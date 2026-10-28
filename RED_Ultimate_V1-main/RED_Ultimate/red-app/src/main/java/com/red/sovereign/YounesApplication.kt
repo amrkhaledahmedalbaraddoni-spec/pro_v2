@@ -23,6 +23,8 @@ class YounesApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        // P0 2026-10-28: تطبيق لغة التطبيق المحفوظة قبل إنشاء أي مورد/نشاط.
+        com.red.sovereign.settings.LanguageManager.initialize(this)
         // SQLCipher 4.17 requires explicit native initialization before Room
         // creates SupportOpenHelperFactory. Fail early with a useful cause rather
         // than crashing later on the first encrypted database access.

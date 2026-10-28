@@ -13,6 +13,16 @@ object YounesServerSignature {
     const val DEFAULT_PORT = 8088
     const val DEFAULT_HTTPS_PORT = 8443
 
+    /**
+     * P0 2026-10-28: نقطة فحص «حي» فورية بلا فحوص قواعد البيانات.
+     * `/health` الأصلي ينفّذ 4 تحقيقات متوازية (Postgres/Mongo/Redis/MinIO)
+     * قد تستغرق ~800ms، بينما مهلة الاكتشاف كانت 600ms للقراءة — فكان الخادم
+     * السليم يُرفض في كل مرة. الاكتشاف الآن يبدأ بـ `/health/live` (≈5ms).
+     */
+    const val LIVE_ENDPOINT = "/health/live"
+    const val HEALTH_ENDPOINT = "/health"
+    const val AUTHORITY_ENDPOINT = "/api/identity/authority"
+
     private val HEALTH_READY = Regex("\\\"status\\\"\\s*:\\s*\\\"(UP|HEALTHY|DEGRADED)\\\"", RegexOption.IGNORE_CASE)
     private val YOUNES_MARK = Regex(
         "1\\.0\\.0-(YOUNES|RED)|\\\"brand\\\"\\s*:\\s*\\\"YOUNES\\\"|يونس",
@@ -28,6 +38,10 @@ object YounesServerSignature {
 
     fun isYounesAuthority(body: String): Boolean =
         body.isNotBlank() && AUTHORITY_ALG.containsMatchIn(body) && AUTHORITY_HINT.containsMatchIn(body)
+
+    /** بصمة `/health/live`: حالة جاهزة + علامة يونس — كافية للاكتشاف السريع. */
+    fun isYounesLive(body: String): Boolean =
+        body.isNotBlank() && isReadyHealth(body) && YOUNES_MARK.containsMatchIn(body)
 
     /**
      * الخادم يُقبل إذا كان جاهزًا للدخول وثبتت هويته الإنتاجية.

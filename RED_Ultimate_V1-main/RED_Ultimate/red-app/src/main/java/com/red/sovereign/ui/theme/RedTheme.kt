@@ -616,37 +616,12 @@ fun SovereignBackground(content: @Composable () -> Unit) {
             .fillMaxSize()
             .background(bgBrush)
     ) {
-        // هالات شبكية خافتة — فوق الأساس، تحت المحتوى. ألفا منخفض عمدًا
-        // حتى لا تُضعف تباين النص (النص يُقاس على الأساس لا على الهالة).
+        // P0 2026-10-28: هالات «الشفق السيادي» المتحركة — طبقة واحدة موحّدة
+        // لكل شاشات التطبيق (كانت ثلاث هالات ثابتة منسوخة هنا فقط). تحترم
+        // reduceMotion/highContrast وتتحول لطبقة ثابتة عند تعطيل الحركة.
+        // التفاصيل في SovereignAurora.kt — ألفا ≤10% تحفظ تباين النص.
         if (AppThemeState.currentPreset == AppThemePreset.SOVEREIGN) {
-            if (isDark) {
-                Box(Modifier.fillMaxSize().background(GradientMeshEmerald))
-                Box(Modifier.fillMaxSize().background(GradientMeshCobalt))
-                Box(Modifier.fillMaxSize().background(GradientMeshViolet))
-            } else {
-                Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                YounesPrimary.copy(alpha = 0.05f),
-                                Color.Transparent
-                            ),
-                            radius = 900f
-                        )
-                    )
-                )
-                Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                YounesCobalt.copy(alpha = 0.05f),
-                                Color.Transparent
-                            ),
-                            radius = 1000f
-                        )
-                    )
-                )
-            }
+            AuroraMeshLayer(isDark = isDark)
         }
         content()
     }

@@ -118,6 +118,28 @@ fun ActiveCallScreen(modifier: Modifier = Modifier) {
     var camera by remember { mutableStateOf(true) }
     var controlsVisible by remember { mutableStateOf(true) }
 
+    // P0 2026-10-28: إعادة محاولة الكاميرا أثناء المكالمة. كان أي فشل (إذن
+    // مرفوض، كاميرا مشغولة بتطبيق آخر، Camera2 legacy) يعني شاشة سوداء دائمة
+    // بلا أي زر للمستخدم. الآن نطلب الإذن then نستدعي retryCamera() في الخدمة.
+    val cameraRetryPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            camera = true
+            YounesCallService.action(context, YounesCallService.ACTION_CAMERA, true)
+            CallRuntime.cameraNotice = false
+        }
+    }
+    val retryCameraNow = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            camera = true
+            YounesCallService.action(context, YounesCallService.ACTION_CAMERA, true)
+            CallRuntime.cameraNotice = false
+        } else {
+            cameraRetryPermission.launch(Manifest.permission.CAMERA)
+        }
+    }
+
     // رجوع متدرج: إن كانت عناصر التحكم مخفية تُظهرها أولاً، وإلا يُصغّر
     // إلى PiP/شريط مصغّر مع بقاء ForegroundService — لا يُنهي المكالمة
     // ولا يحبس المستخدم (الإنهاء الصريح لزر الإنهاء فقط).
@@ -273,7 +295,9 @@ fun ActiveCallScreen(modifier: Modifier = Modifier) {
                             Modifier
                                 .size(120.dp, 170.dp)
                                 .clip(RoundedCornerShape(18.dp))
-                                .border(1.5.dp, SovereignColors.Gold, RoundedCornerShape(18.dp))
+                                .border(1.5.dp, SovereignColors.Gold, RoundedCornerShape(18.dp)),
+                            // P0: المعاينة المحلية فوق سطح الفيديو البعيد دائماً.
+                            isOverlay = true
                         )
                     }
                 } else {
@@ -318,6 +342,35 @@ fun ActiveCallScreen(modifier: Modifier = Modifier) {
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // P0: شريط «الكاميرا غير متاحة» مع إعادة محاولة فعلية + طلب إذن.
+                if (video && CallRuntime.cameraNotice && state is CallUiState.Active) {
+                    androidx.compose.animation.AnimatedVisibility(visible = true) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(SovereignColors.SurfaceCard.copy(alpha = 0.92f))
+                                .border(1.dp, SovereignColors.Gold.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "الكاميرا غير متاحة — المكالمة مستمرة صوتياً",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(onClick = { retryCameraNow() }) {
+                                Icon(Icons.Rounded.Videocam, null, tint = SovereignColors.Gold, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("إعادة المحاولة", color = SovereignColors.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
 
                 // Controls

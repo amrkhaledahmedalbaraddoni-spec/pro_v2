@@ -33,6 +33,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     var serverState: ServerState by mutableStateOf(ServerState.Ready(ServerEndpoint.url()))
         private set
 
+    /** تقرير تشخيص الاتصال التفصيلي (يُعرض في شاشة الدخول عند الضغط على «تشخيص»). */
+    var connectionReport: com.red.sovereign.core.ConnectionReport? by mutableStateOf(null)
+        private set
+    var diagnosticsRunning: Boolean by mutableStateOf(false)
+        private set
+
     var state: AuthState by mutableStateOf(AuthState.Loading)
         private set
     private var pendingCredentials: Pair<String, String>? = null
@@ -51,20 +57,36 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * P0 2026-10-28: يقبل `192.168.1.50` و`192.168.1.50:8088` و`red.local`
+     * والروابط الكاملة. كانت الشاشة ترفض أي إدخال بلا `http://` — وهو السبب
+     * الأكثر شيوعاً لرسالة «تعذر الاتصال» رغم أن الهاتف والخادم بنفس الشبكة.
+     */
     fun setServerUrl(value: String): String? {
-        val trimmed = value.trim()
-        if (trimmed.isBlank()) return "أدخل عنوان الخادم (مثال: http://192.168.11.178:8088)"
-        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-            return "يجب أن يبدأ العنوان بـ http:// أو https://"
-        }
         return try {
-            ServerEndpoint.update(getApplication(), trimmed)
-            serverState = ServerState.Ready(ServerEndpoint.url())
+            val normalized = ServerEndpoint.normalizeUserInput(value)
+            ServerEndpoint.update(getApplication(), normalized)
+            serverState = ServerState.Ready(normalized)
+            connectionReport = null
             null
+        } catch (e: IllegalArgumentException) {
+            e.message ?: "عنوان غير صالح. استخدم صيغة 192.168.1.50:8088"
         } catch (_: Exception) {
-            "عنوان غير صالح. استخدم صيغة http://IP:8088 أو https://domain"
+            "عنوان غير صالح. استخدم صيغة 192.168.1.50:8088 أو https://domain"
         }
     }
+
+    /** يشخّص الاتصال طبقةً بطبقة ويعرض نتيجة قابلة للتنفيذ في الواجهة. */
+    fun runDiagnostics(value: String = ServerEndpoint.url()) {
+        if (diagnosticsRunning) return
+        viewModelScope.launch {
+            diagnosticsRunning = true
+            connectionReport = com.red.sovereign.core.ConnectionDiagnostics.run(getApplication(), value)
+            diagnosticsRunning = false
+        }
+    }
+
+    fun clearDiagnostics() { connectionReport = null }
 
     fun showRegister() { state = AuthState.Register }
     fun showLogin() { state = AuthState.Login }
@@ -277,8 +299,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private fun localize(value: String) = when {
         value.contains("INVALID_CREDENTIALS", ignoreCase = true) || value.contains("401", ignoreCase = true) ->
             "اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التأكد من البيانات والمحاولة مجدداً."
+        value.contains("CLEARTEXT", ignoreCase = true) || value.contains("not permitted by network security policy", ignoreCase = true) ->
+            "النظام يمنع الاتصال غير المشفر (HTTP). استخدم HTTPS أو فعّل السماح بـ HTTP للشبكة المحلية من إعدادات البناء."
         value.contains("NETWORK_ERROR", ignoreCase = true) || value.contains("Connection refused", ignoreCase = true) ->
-            "تعذر الاتصال بخادم يونس. يرجى التأكد من الاتصال بالشبكة أو الخادم المحلي والمحاولة مجدداً."
+            "تعذر الاتصال بخادم يونس. استخدم زر «تشخيص الاتصال» لمعرفة الطبقة الفاشلة (المنفذ/الجدار الناري/الخادم)."
         value.contains("OFFLINE", ignoreCase = true) ->
             "لا توجد شبكة إطلاقاً (وضع طيران؟). فعّل Wi-Fi أو البيانات أو اتصل بالشبكة المحلية ثم أعد المحاولة."
         value.contains("INVALID_RECOVERY_CODE", ignoreCase = true) ->

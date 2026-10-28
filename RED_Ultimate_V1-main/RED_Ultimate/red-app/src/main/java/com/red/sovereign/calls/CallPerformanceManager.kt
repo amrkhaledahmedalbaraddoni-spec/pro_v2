@@ -133,5 +133,14 @@ object CallPerformanceManager {
     }
 
     fun shouldDisableVideo(): Boolean = _stats.value.quality == NetworkQuality.POOR
-    fun shouldSwitchToAudio(): Boolean = _stats.value.rttMs > 400 || _stats.value.packetLossPercent > 5f || _stats.value.mosScore < 2.0f
+    /**
+     * P0 2026-10-28: كان `mosScore < 2.0f` يتحقق مع القيمة الابتدائية 0f قبل
+     * وصول أي إحصاءات، فيُطفأ الفيديو تلقائياً بعد أول عيّنة في كل مكالمة.
+     * الآن نشترط قياساً فعلياً (mosScore > 0) وتصنيف POOR مؤكد.
+     */
+    fun shouldSwitchToAudio(): Boolean {
+        val s = _stats.value
+        if (s.quality != NetworkQuality.POOR) return false
+        return s.rttMs > 400 || s.packetLossPercent > 5f || (s.mosScore > 0f && s.mosScore < 2.0f)
+    }
 }

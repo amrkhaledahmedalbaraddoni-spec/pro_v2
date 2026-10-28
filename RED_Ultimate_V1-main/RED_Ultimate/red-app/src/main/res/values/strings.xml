@@ -191,4 +191,28 @@
     <string name="file_size_mb">%1$.1f م.ب</string>
     <string name="file_size_kb">%1$.1f ك.ب</string>
     <string name="file_size_b">%1$d بايت</string>
+
+    <!-- ═══ P0 2026-10-28: نصوص موحّدة للاتصال والكاميرا والواجهة ═══ -->
+    <string name="server_status_title">حالة الخادم</string>
+    <string name="server_status_connecting">جارٍ التحقق الذكي من شبكة يونس…</string>
+    <string name="server_status_ready">الخادم الآمن</string>
+    <string name="server_discover_again">إعادة الاكتشاف</string>
+    <string name="server_diagnostics">تشخيص الاتصال</string>
+    <string name="server_diagnostics_running">جارٍ التشخيص…</string>
+    <string name="server_manual_hint">192.168.1.50:8088 أو http://red.local:8088</string>
+    <string name="server_manual_title">تحديد عنوان الخادم يدويًا</string>
+    <string name="server_save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="app_tagline">منظومة اتصالات سيادية مشفّرة • بلا رقم هاتف</string>
+    <string name="feature_e2ee">تشفير طرف لطرف</string>
+    <string name="feature_lan_server">خادمك على شبكتك</string>
+    <string name="keys_never_leave">مفاتيحك تُولَّد داخل الجهاز ولا تغادره أبداً</string>
+    <string name="create_sovereign_account">إنشاء حساب سيادي</string>
+    <string name="already_have_account">لدي حساب بالفعل</string>
+    <string name="camera_unavailable_banner">الكاميرا غير متاحة — المكالمة مستمرة صوتياً</string>
+    <string name="camera_retry">إعادة المحاولة</string>
+    <string name="camera_permission_denied">الكاميرا غير متاحة — ستستمر المكالمة صوتياً</string>
+    <string name="cd_younes_logo">شعار يونس</string>
+    <string name="cd_server">الخادم</string>
+    <string name="cd_connection_quality">جودة الاتصال</string>
 </resources>

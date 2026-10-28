@@ -88,7 +88,11 @@ android {
             isMinifyEnabled = true
             // LEGENDARY FIX: تقليص الموارد + ABI واحد (كان APK ~259MB مستحيل التثبيت)
             isShrinkResources = true
-            manifestPlaceholders["usesCleartext"] = "false"
+            // P0 2026-10-28: خادم يونس على LAN يعمل عبر HTTP:8088. الحظر هنا جعل
+            // كل نسخة release تفشل في الاتصال بصمت. network_security_config.xml
+            // يسمح بـ cleartext على مستوى النظام، وServerEndpoint.isLocalCleartextHost
+            // يحصره في النطاقات الخاصة فقط — لا HTTP عام من التطبيق إطلاقاً.
+            manifestPlaceholders["usesCleartext"] = "true"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // بوابة الستور: الشارات المؤقتة مخفية تمامًا في release.
             buildConfigField("boolean", "SHOW_PLACEHOLDERS", "false")

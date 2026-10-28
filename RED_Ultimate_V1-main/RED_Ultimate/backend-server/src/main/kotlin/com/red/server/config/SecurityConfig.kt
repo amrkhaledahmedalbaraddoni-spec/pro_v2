@@ -34,7 +34,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 class SecurityConfig(
     private val jwtFilter: JwtAuthenticationFilter,
     @Value("\${red.security.allowed-origins:http://localhost,http://127.0.0.1}")
-    private val configuredAllowedOrigins: String
+    private val configuredAllowedOrigins: String,
+    @Value("\${red.admin-cookie.secure:true}")
+    private val adminCookieSecure: Boolean = true
 ) {
     @Bean
     fun passwordEncoder(): PasswordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()
@@ -181,13 +183,36 @@ class SecurityConfig(
      *   ResponseCookie.from("refreshToken", token).httpOnly(true).secure(true).sameSite("Strict").path("/api/auth").maxAge(30*24*3600).build()
      */
     fun buildRefreshCookie(token: String, maxAgeDays: Long = 30): String {
-        return "refreshToken=$token; Path=/api/auth; Max-Age=${maxAgeDays*24*3600}; HttpOnly; Secure; SameSite=Strict"
+        // P0 2026-10-28: `Secure` الصلب كان يُسقط الكوكي فوق HTTP المحلي
+        // (المنفذ 8088) فتنكسر جلسة لوحة الإدارة بلا رسالة. الإعداد الافتراضي
+        // في application.yml عبر red.admin-cookie.secure، وتضبطه .env
+        // (RED_ADMIN_COOKIE_SECURE=false للتطوير على LAN).
+        val secure = if (adminCookieSecure) "; Secure" else ""
+        return "refreshToken=$token; Path=/api/auth; Max-Age=${maxAgeDays*24*3600}; HttpOnly$secure; SameSite=Strict"
     }
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            allowedOriginPatterns = configuredAllowedOrigins.split(',').map(String::trim).filter(String::isNotEmpty)
+            // P0 2026-10-28: CORS الافتراضي كان localhost فقط. لوحة الإدارة تُفتح
+            // من هاتف/حاسوب آخر على LAN عبر http://192.168.x.x:8088 أو من
+            // Vite dev server على :5173 — فتُرفض كل طلباتها بـ 403 صامت وتظهر
+            // «لوحة الأدمن لا تتزامن مع قاعدة البيانات». نضيف أنماط النطاقات
+            // الخاصة RFC1918 (لا wildcard عام للإنترنت) مع الإبقاء على ما يضبطه
+            // المستخدم في ALLOWED_ORIGINS.
+            val lanPatterns = buildList {
+                addAll(listOf(
+                    "http://localhost:*", "https://localhost:*",
+                    "http://127.0.0.1:*", "https://127.0.0.1:*",
+                    "http://10.*", "http://192.168.*"
+                ))
+                addAll((16..31).map { "http://172.$it.*" })
+                addAll((16..31).map { "https://172.$it.*" })
+                add("https://10.*")
+                add("https://192.168.*")
+            }
+            val configured = configuredAllowedOrigins.split(',').map(String::trim).filter(String::isNotEmpty)
+            allowedOriginPatterns = (configured + lanPatterns).distinct()
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             allowedHeaders = listOf("Authorization", "Content-Type", "X-Requested-With", "X-Device-Id", "X-RED-Admin-Web", "X-RED-CSRF")
             exposedHeaders = listOf("Location", "X-Total-Count")

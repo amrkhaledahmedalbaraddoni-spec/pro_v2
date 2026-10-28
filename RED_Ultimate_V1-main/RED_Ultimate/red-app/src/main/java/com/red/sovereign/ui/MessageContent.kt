@@ -1064,21 +1064,8 @@ internal fun ReactionEmojiBar(onPick: (String) -> Unit) {
 @Composable
 
 internal fun EmojiPicker(onEmoji: (String) -> Unit) {
-    var category by remember { mutableIntStateOf(0) }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(vertical = 6.dp)) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(horizontal = 8.dp)) {
-                items(EMOJI_CATEGORIES.indices.toList()) { index ->
-                    FilterChip(selected = category == index, onClick = { category = index }, label = { Text(EMOJI_CATEGORIES[index].first) })
-                }
-            }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(horizontal = 6.dp)) {
-                items(EMOJI_CATEGORIES[category].second) { emoji ->
-                    TextButton({ onEmoji(emoji) }) { Text(emoji, fontSize = 24.sp) }
-                }
-            }
-        }
-    }
+    // P0 2026-10-28: توحيد مع ChatsScreen في منتقٍ واحد (شبكة + بحث + الأخيرة + درجات البشرة).
+    com.red.sovereign.ui.components.SovereignEmojiPicker(onEmoji = onEmoji)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

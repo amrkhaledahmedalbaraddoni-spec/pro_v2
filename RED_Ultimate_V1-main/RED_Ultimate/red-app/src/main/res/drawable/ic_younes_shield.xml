@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- درع يونس — أيقونة دلالية موحّدة للتشفير/الأمان/الخادم. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <path
+        android:fillColor="#FFD4B25A"
+        android:pathData="M12,2L4,5.2V11.1C4,16.2 7.4,20.5 12,22C16.6,20.5 20,16.2 20,11.1V5.2L12,2ZM12,4.3L18,6.7V11.1C18,15.2 15.5,18.7 12,19.9C8.5,18.7 6,15.2 6,11.1V6.7L12,4.3Z" />
+    <path
+        android:fillColor="#FF06090F"
+        android:pathData="M11,13.6L8.7,11.3L7.3,12.7L11,16.4L16.7,10.7L15.3,9.3L11,13.6Z" />
+</vector>

@@ -503,6 +503,35 @@ services:
   # Host must run chrony/ntpd. Backend health can verify clock skew via /health.
   # so NTP sync is expected at host level, not container runtime download.
 
+  # ━━━━━━━━━━━━ 11. LAN discovery announcer (اختياري — يحل مشكلة "لا يتصل بالسيرفر") ━━━━
+  # التطبيق يبث "YOUNES_DISCOVERY_V1" على UDP 8095 ويستجيب هذا المُعلِن بعنوانه
+  # الحالي فوراً (≈1 ثانية) بدل مسح /24 كاملاً. بث UDP لا يمر عبر تعيين منافذ
+  # الجسر (bridge) لذلك نحتاج network_mode: host. الخدمة اختيارية عبر profile
+  # حتى لا تُجبر كل عمليات النشر على host networking (خصوصاً Docker Desktop):
+  #   docker compose --profile lan-discovery up -d
+  # أو شغّلها على المضيف مباشرة: python scripts/server-announcer.py
+  # إن كانت الشبكة لا تدعم host networking، اتركها متوقفة — الاكتشاف يعود
+  # للمسح الشامل (THOROUGH) المُحسّن في التطبيق تلقائياً.
+  lan-announcer:
+    image: python:3.12-alpine
+    container_name: red-lan-announcer
+    profiles: ["lan-discovery"]
+    restart: unless-stopped
+    network_mode: host
+    mem_limit: 64m
+    environment:
+      - YOUNES_HTTP_PORT=${RED_HTTP_PORT:-8088}
+      - YOUNES_UDP_PORT=8095
+      - YOUNES_ADVERTISE_IP=${CLIENT_LAN_IP:-}
+      - YOUNES_MDNS_ENABLED=${YOUNES_MDNS_ENABLED:-0}
+    volumes:
+      - ./scripts/server-announcer.py:/app/server-announcer.py:ro
+    command: ["python", "-u", "/app/server-announcer.py"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: ["ALL"]
+    read_only: true
+
 volumes:
   postgres-data:
   mongo-data:

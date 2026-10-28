@@ -13,13 +13,19 @@ The current LAN IP is recomputed on every cycle / every reply - never cached -
 so the announcer survives network changes (Wi-Fi <-> hotspot <-> new router).
 """
 import json
+import os
 import socket
 import sys
 import time
 import threading
 
-HTTP_PORT = 8088
-UDP_PORT = 8095
+# P0 2026-10-28: قابلة للضبط من .env / docker-compose. كان المنفذ 8088
+# صلباً — فإذا غيّر المستخدم RED_HTTP_PORT إلى 8090 يعلن المكتشف عن منفذ
+# خاطئ ويفشل الاتصال رغم أن الخادم يعمل.
+HTTP_PORT = int(os.environ.get("YOUNES_HTTP_PORT", os.environ.get("RED_HTTP_PORT", "8088")))
+UDP_PORT = int(os.environ.get("YOUNES_UDP_PORT", "8095"))
+# يسمح بتجاوز الاكتشاف التلقائي (VPN/هوتسبوت/عدة بطاقات شبكة).
+ADVERTISE_IP = os.environ.get("YOUNES_ADVERTISE_IP", "").strip()
 PROBE_MARK = "YOUNES_DISCOVERY_V1"
 MDNS_TYPE = "_younes._tcp.local."
 MDNS_NAME = "YOUNES Server"
@@ -29,6 +35,8 @@ def log(msg: str) -> None:
 
 def current_lan_ip() -> str:
     """Best-effort current private LAN IP (no traffic sent)."""
+    if ADVERTISE_IP:
+        return ADVERTISE_IP
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -121,10 +129,17 @@ def mdns_loop() -> None:
                     pass
 
 def main() -> int:
-    log("YOUNES server announcer starting (mDNS + UDP discovery)")
+    log(f"YOUNES server announcer starting (mDNS + UDP discovery) on HTTP:{HTTP_PORT} UDP:{UDP_PORT}")
     threading.Thread(target=udp_responder, daemon=True).start()
-    mdns_loop()
-    return 0
+    if os.environ.get("YOUNES_MDNS_ENABLED", "1") == "1":
+        mdns_loop()
+    # P0 2026-10-28: mdns_loop كان يعود فوراً عند غياب zeroconf (وهي الحالة
+    # الافتراضية في حاوية python:alpine)، فينهي العملية ويقتل مستجيب UDP
+    # (daemon thread) — أي أن طبقة الاكتشاف كانت ميتة تماماً في Docker.
+    # نُبقي العملية حيّة دائماً لأن UDP responder هو الطبقة الأهم.
+    log("mDNS layer unavailable/disabled - keeping UDP responder alive")
+    while True:
+        time.sleep(3600)
 
 if __name__ == "__main__":
     sys.exit(main())

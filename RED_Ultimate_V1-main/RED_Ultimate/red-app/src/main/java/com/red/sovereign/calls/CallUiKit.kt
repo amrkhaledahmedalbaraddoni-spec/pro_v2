@@ -182,6 +182,16 @@ fun NetworkQualityBars(stats: NetworkStats) {
     }
 }
 
+/**
+ * P0 2026-10-28 — عرض الفيديو الموحّد.
+ *
+ * كان معاينة الكاميرا المحلية تُرسم بـ SurfaceView من نفس ترتيب طبقات السطح
+ * البعيد (full-screen)، فتبتلعها طبقة الفيديو البعيد على كثير من الأجهزة —
+ * فيرى المستخدم «الكاميرا لا تعمل» رغم أن الالتقاط يعمل فعلياً. الآن:
+ * - أي معاينة صغيرة (isOverlay=true) تُرفع فوق الأسطح الأخرى صراحةً.
+ * - نربط الـ sink داخل DisposableEffect ونحرّره عند تغيّر المسار أو العرض.
+ * - نُعيد المحاولة عند تبديل سياق EGL (init على renderer جديد لا مُعاد تدويره).
+ */
 @Composable
 fun WebrtcVideo(track: VideoTrack?, egl: EglBase.Context?, mirror: Boolean, modifier: Modifier, isOverlay: Boolean = false) {
     if (egl == null) {
@@ -194,17 +204,20 @@ fun WebrtcVideo(track: VideoTrack?, egl: EglBase.Context?, mirror: Boolean, modi
     AndroidView(
         factory = { context ->
             SurfaceViewRenderer(context).apply {
+                // setZOrder* يجب أن يُستدعى قبل init() وإلا تتجاهله بعض الشركات المصنّعة.
+                if (isOverlay) {
+                    setZOrderMediaOverlay(true)
+                    setZOrderOnTop(true)
+                }
                 init(egl, null)
                 setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
                 setEnableHardwareScaler(true)
-                if (isOverlay) setZOrderMediaOverlay(true)
                 setMirror(mirror)
                 rendererRef = this
             }
         },
         update = { view ->
             view.setMirror(mirror)
-            if (isOverlay) view.setZOrderMediaOverlay(true)
         },
         onRelease = { view ->
             rendererRef = null
@@ -216,11 +229,11 @@ fun WebrtcVideo(track: VideoTrack?, egl: EglBase.Context?, mirror: Boolean, modi
     DisposableEffect(track, rendererRef) {
         val view = rendererRef
         if (track != null && view != null) {
-            track.addSink(view)
+            runCatching { track.addSink(view) }
         }
         onDispose {
             if (track != null && view != null) {
-                track.removeSink(view)
+                runCatching { track.removeSink(view) }
             }
         }
     }

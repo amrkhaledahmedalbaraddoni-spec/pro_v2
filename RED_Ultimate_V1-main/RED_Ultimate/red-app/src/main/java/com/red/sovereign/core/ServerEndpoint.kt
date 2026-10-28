@@ -60,6 +60,44 @@ object ServerEndpoint {
     /** Host portion of the active endpoint (e.g. "192.168.0.244"), empty if unparsable. */
     fun host(): String = runCatching { URI(url()).host }.getOrNull() ?: ""
 
+    /**
+     * P0 2026-10-28 — يستقبل ما يكتبه المستخدم فعلاً في شاشة الدخول:
+     * `192.168.1.50` أو `192.168.1.50:8088` أو `red.local:8088` أو رابطاً كاملاً.
+     *
+     * الشاشة القديمة كانت ترفض أي إدخال لا يبدأ بـ `http://` — وهو خطأ بشري
+     * متكرر جداً حين يكون المستخدم على نفس الشبكة. الآن نضيف `http://` تلقائياً
+     * للعناوين المحلية، ونضيف المنفذ 8088 إن غاب، ثم نمرّر النتيجة على [normalize]
+     * (الذي يمنع cleartext على الإنترنت العام ويمنع المسارات/الاستعلامات).
+     *
+     * @return الرابط المعياري الجاهز للتخزين.
+     * @throws IllegalArgumentException بسبب واضح يُعرض للمستخدم.
+     */
+    fun normalizeUserInput(raw: String): String {
+        var value = raw.trim()
+        if (value.isBlank()) throw IllegalArgumentException("أدخل عنوان الخادم (مثال: 192.168.1.50:8088)")
+        // إزالة شرطة مائلة زائدة في النهاية — normalize يرفض المسارات.
+        value = value.trimEnd('/')
+        if (!value.contains("://")) {
+            val hostPart = value.substringBefore('/')
+            val bareHost = if (hostPart.startsWith("[")) {
+                hostPart.substringAfter('[').substringBefore(']')
+            } else hostPart.substringBefore(':')
+            val isLocal = isLocalCleartextHost(bareHost.trim('[', ']'))
+            if (!isLocal) {
+                // للمضيفات العامة نفترض HTTPS دائماً — لا cleartext على الإنترنت.
+                return normalize("https://$value")
+            }
+            value = "http://$value"
+        }
+        // أضف منفذ الإنتاج إن لم يُحدَّد صراحةً (URI.port == -1).
+        val uri = runCatching { URI(value) }.getOrElse { throw IllegalArgumentException("عنوان الخادم غير صالح") }
+        if (uri.port == -1 && uri.host != null) {
+            val port = if (uri.scheme == "https") YounesServerSignature.DEFAULT_HTTPS_PORT else YounesServerSignature.DEFAULT_PORT
+            value = URI(uri.scheme, null, uri.host, port, null, null, null).toString()
+        }
+        return normalize(value)
+    }
+
     fun update(context: Context, value: String) {
         val normalized = runCatching { normalize(value) }.getOrNull() ?: run { android.util.Log.w("ServerEndpoint", "update skipped: invalid url"); return }
         if (current != normalized) {

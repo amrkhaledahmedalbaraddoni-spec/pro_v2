@@ -823,7 +823,11 @@ override fun onConnectionState(state: PeerConnection.PeerConnectionState) {
         // للحفاظ على استمرار الصوت ودون قطع المكالمة على المستخدم.
         if (mode == "VIDEO" && isActiveCall()) {
             val now = System.currentTimeMillis()
-            if (CallPerformanceManager.shouldSwitchToAudio() && now - lastAutoDowngradeTime > 15_000L) {
+            // P0 2026-10-28: لا نُطفئ كاميرا المستخدم إلا بشبكة POOR مؤكدة
+            // (RTT>400 أو فقد>5%) ولمرة واحدة كل 60 ثانية. كانmosScore=0
+            // الابتدائي يُطلق هذا في أول عيّنة في each مكالمة → «الكاميرا لا تعمل».
+            val reallyBad = stats.rttMs > 400L || stats.packetLossPercent > 5.0
+            if (reallyBad && CallPerformanceManager.shouldSwitchToAudio() && now - lastAutoDowngradeTime > 60_000L) {
                 lastAutoDowngradeTime = now
                 android.util.Log.w("YounesCallService", "Network quality degraded (RTT=${stats.rttMs}ms, Loss=${stats.packetLossPercent}%) — Auto-downgrading video to preserve audio")
                 engine?.setCameraEnabled(false)

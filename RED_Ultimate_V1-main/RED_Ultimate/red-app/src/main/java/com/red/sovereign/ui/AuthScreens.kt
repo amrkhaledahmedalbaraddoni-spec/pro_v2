@@ -1,6 +1,12 @@
 package com.red.sovereign.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,29 +17,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -56,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -73,28 +69,72 @@ import com.red.sovereign.R
 import com.red.sovereign.auth.AuthState
 import com.red.sovereign.auth.AuthViewModel
 import com.red.sovereign.auth.ServerState
+import com.red.sovereign.ui.theme.AppThemeState
+import com.red.sovereign.ui.theme.PlexArabicFamily
+import com.red.sovereign.ui.theme.YounesIcons
+import com.red.sovereign.ui.theme.YounesMotion
+import com.red.sovereign.ui.theme.YounesOnBrand
+import com.red.sovereign.ui.theme.YounesPrimary
+import com.red.sovereign.ui.theme.YounesAccent
+import com.red.sovereign.ui.theme.YounesRadius
+import com.red.sovereign.ui.theme.YounesSpace
+import com.red.sovereign.ui.theme.YounesSuccess
 
-// Telegram / WhatsApp High-Contrast Dark Color System
-private val TelegramDarkBg = Color(0xFF0E1621)
-private val TelegramDarkCard = Color(0xFF17212B)
-private val TelegramDarkInput = Color(0xFF242F3D)
-private val TelegramBorder = Color(0xFF2A394A)
-private val CleanAccentGreen = Color(0xFF00A884)
-private val CleanAccentBlue = Color(0xFF2AABEE)
-private val TextWhite = Color(0xFFFFFFFF)
-private val TextSilver = Color(0xFF8E9DAE)
-private val TextMuted = Color(0xFF6C788A)
-private val ErrorRed = Color(0xFFE53935)
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * شاشات الدخول والتسجيل — Younes Sovereign 2026
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * ## ما الذي تغير (P0 2026-10-28)
+ * 1. **إزالة ألوان المنافسين الصلبة**: كانت الشاشة تعرّف `TelegramDarkBg`،
+ *    `CleanAccentGreen = #00A884` (واتساب) و`CleanAccentBlue = #2AABEE`
+ *    (تيليجرام) محلياً — أي أن أول شاشة في التطبيق كانت تبدو نسخة من
+ *    تيليجرام بينما بقيّة التطبيق يستخدم «ذهب الليل» السيادي. الآن كل لون
+ *    من `MaterialTheme.colorScheme` / لوحة Younes.
+ * 2. **الخلفية**: شفافة فوق `SovereignBackground` (الشفق السيادي المتحرك)
+ *    بدل طبقة `#0E1621` مسطّحة تغطي كل شيء — تحترم الوضع الفاتح/الداكن
+ *    والثيمات المخصصة تلقائياً.
+ * 3. **الاتصال بالخادم**: يقبل `192.168.1.50` و`host:port` والروابط الكاملة،
+ *    ويعرض زر «تشخيص الاتصال» بتقرير طبقي قابل للتنفيذ بدل رسالة غامضة.
+ * 4. **الأيقونات/المسافات/الزوايا** من السجل الموحّد (YounesIcons/Space/Radius).
+ * 5. **الحركة** هادئة وتحترم reduceMotion؛ نبضة واحدة فقط للعلامة.
+ * 6. **إمكانية الوصول**: أهداف لمس ≥48dp، وصف محتوى، تباين AA على الأقل.
+ */
+
+// ─── الألوان الدلالية المشتقة من الثيم (لا قيم محلية صلبة) ───────────────
+@Composable
+private fun authSurface(): Color =
+    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f)
+
+@Composable
+private fun authField(): Color =
+    MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.96f)
+
+@Composable
+private fun authAccent(): Color = MaterialTheme.colorScheme.primary
 
 @Composable
 fun AuthFlow(viewModel: AuthViewModel) {
     when (val state = viewModel.state) {
         AuthState.Loading, AuthState.Submitting -> LoadingScreen()
-        AuthState.Welcome -> WelcomeScreen(viewModel.serverState, viewModel::discoverServer, viewModel::showRegister, viewModel::showLogin, viewModel::setServerUrl)
+        AuthState.Welcome -> WelcomeScreen(
+            server = viewModel.serverState,
+            discover = viewModel::discoverServer,
+            register = viewModel::showRegister,
+            login = viewModel::showLogin,
+            setServerUrl = viewModel::setServerUrl,
+            report = viewModel.connectionReport,
+            diagnosticsRunning = viewModel.diagnosticsRunning,
+            runDiagnostics = viewModel::runDiagnostics
+        )
         AuthState.Register -> RegisterTabScreen(viewModel::register, viewModel::showLogin, viewModel::showWelcome)
         AuthState.Login -> LoginTabScreen(viewModel::login, viewModel::showRegister, viewModel::showRecovery, viewModel::showWelcome)
         AuthState.Recovery -> RecoveryScreen(viewModel::recover, viewModel::showLogin)
-        AuthState.RecoveryComplete -> StatusScreen("تم تغيير كلمة المرور 🔐", "أُلغيت كل الجلسات القديمة بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.", viewModel::showLogin)
+        AuthState.RecoveryComplete -> StatusScreen(
+            "تم تغيير كلمة المرور 🔐",
+            "أُلغيت كل الجلسات القديمة بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
+            viewModel::showLogin
+        )
         is AuthState.Pending -> PendingScreen(state, viewModel::checkApproval, viewModel::showLogin)
         is AuthState.Rejected -> StatusScreen("تم رفض طلب الحساب ❌", state.reason ?: "يرجى مراجعة مسؤول منظومة يونس المحلية.", viewModel::showLogin)
         AuthState.Suspended -> StatusScreen("الحساب موقوف مؤقتاً ⚠️", "تواصل مع المسؤول المحلي لتفعيل الجلسة.", viewModel::showLogin)
@@ -106,272 +146,300 @@ fun AuthFlow(viewModel: AuthViewModel) {
 
 @Composable
 private fun LoadingScreen() = Centered {
-    CircularProgressIndicator(color = CleanAccentGreen, modifier = Modifier.size(42.dp))
-    Spacer(Modifier.height(16.dp))
-    Text("جارٍ الاتصال بالسيرفر…", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-    Spacer(Modifier.height(6.dp))
-    Text("ثوانٍ معدودة — لن يبقى التطبيق معلّقًا إذا كان الخادم بعيدًا", color = TextSilver, fontSize = 12.sp, textAlign = TextAlign.Center)
+    CircularProgressIndicator(color = authAccent(), modifier = Modifier.size(42.dp))
+    Spacer(Modifier.height(YounesSpace.m))
+    Text(
+        "جارٍ الاتصال بالخادم السيادي…",
+        color = MaterialTheme.colorScheme.onBackground,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFamily = PlexArabicFamily
+    )
+    Spacer(Modifier.height(YounesSpace.xxs))
+    Text(
+        "ثوانٍ معدودة — لن يبقى التطبيق معلّقاً إذا كان الخادم بعيدًا",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 12.sp,
+        textAlign = TextAlign.Center,
+        fontFamily = PlexArabicFamily
+    )
 }
 
 @Composable
-private fun WelcomeScreen(server: ServerState, discover: () -> Unit, register: () -> Unit, login: () -> Unit, setServerUrl: (String) -> String?) = Column(
-    Modifier.fillMaxSize().background(TelegramDarkBg).padding(horizontal = 24.dp, vertical = 18.dp).widthIn(max = 520.dp).verticalScroll(rememberScrollState()),
-    Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
-    Alignment.CenterHorizontally
-) {
+private fun FeatureChip(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(YounesSpace.xxs),
+        modifier = Modifier
+            .clip(RoundedCornerShape(YounesRadius.pill))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(YounesRadius.pill))
+            .padding(horizontal = YounesSpace.s, vertical = YounesSpace.xxs)
+    ) {
+        Icon(icon, null, tint = authAccent(), modifier = Modifier.size(16.dp))
+        Text(text, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontFamily = PlexArabicFamily)
+    }
+}
+
+@Composable
+private fun WelcomeScreen(
+    server: ServerState,
+    discover: () -> Unit,
+    register: () -> Unit,
+    login: () -> Unit,
+    setServerUrl: (String) -> String?,
+    report: com.red.sovereign.core.ConnectionReport?,
+    diagnosticsRunning: Boolean,
+    runDiagnostics: (String) -> Unit
+) = Centered(scrollable = true) {
     var showManualInput by remember { mutableStateOf(false) }
     var serverInput by remember { mutableStateOf("") }
     var serverInputError by remember { mutableStateOf<String?>(null) }
-    BrandMark(120)
-    Spacer(Modifier.height(18.dp))
-    Text("يونس", style = MaterialTheme.typography.headlineLarge, color = TextWhite, fontWeight = FontWeight.Black)
-    Text("منظومة اتصالات سيادية مشفرة • بدون رقم هاتف", color = CleanAccentBlue, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-    
-    Spacer(Modifier.height(20.dp))
-    
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = TelegramDarkCard), shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val accent = authAccent()
+
+    BrandMarkAnimated(112)
+    Spacer(Modifier.height(YounesSpace.m))
+    Text(
+        "يونس",
+        style = MaterialTheme.typography.headlineLarge,
+        color = MaterialTheme.colorScheme.onBackground,
+        fontWeight = FontWeight.Bold,
+        fontFamily = PlexArabicFamily
+    )
+    Text(
+        "منظومة اتصالات سيادية مشفّرة • بلا رقم هاتف",
+        color = accent,
+        textAlign = TextAlign.Center,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        fontFamily = PlexArabicFamily
+    )
+
+    Spacer(Modifier.height(YounesSpace.m))
+    Row(horizontalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+        FeatureChip("تشفير طرف لطرف", YounesIcons.Shield)
+        FeatureChip("خادمك على شبكتك", YounesIcons.Server)
+    }
+
+    Spacer(Modifier.height(YounesSpace.l))
+
+    Card(
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        colors = CardDefaults.cardColors(containerColor = authSurface()),
+        shape = RoundedCornerShape(YounesRadius.card)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(YounesSpace.m),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(YounesSpace.xs)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+                Icon(YounesIcons.Server, null, tint = accent, modifier = Modifier.size(YounesIconSizeMedium))
+                Text("حالة الخادم", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontFamily = PlexArabicFamily)
+            }
             when (server) {
                 ServerState.Discovering -> {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator(Modifier.size(18.dp), color = CleanAccentBlue, strokeWidth = 2.dp)
-                        Text("جارٍ التحقق الذكي من شبكة يونس…", color = TextSilver, fontSize = 13.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+                        CircularProgressIndicator(Modifier.size(18.dp), color = accent, strokeWidth = 2.dp)
+                        Text("جارٍ التحقق الذكي من شبكة يونس…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontFamily = PlexArabicFamily)
                     }
                 }
-                is ServerState.Ready -> Text("الخادم الآمن: ${server.url} 🟢", color = CleanAccentGreen, fontSize = 12.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+                is ServerState.Ready -> StatusPill(server.url, positive = true)
                 is ServerState.Error -> {
-                    Text(server.message, color = ErrorRed, fontSize = 13.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold)
-                    Text("الافتراضي: ${server.fallbackUrl}", color = TextMuted, fontSize = 11.sp)
+                    StatusPill(server.message, positive = false)
+                    Text("العنوان الحالي: ${server.fallbackUrl}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontFamily = PlexArabicFamily)
                 }
             }
-            TextButton(discover, enabled = server !is ServerState.Discovering) {
-                Icon(Icons.Default.Wifi, null, tint = CleanAccentBlue, modifier = Modifier.size(18.dp))
-                Text(" إعادة اكتشاف الخادم الآمن", color = CleanAccentBlue, fontSize = 12.sp)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+                TextButton(onClick = discover, enabled = server !is ServerState.Discovering) {
+                    Icon(YounesIcons.Wifi, null, tint = accent, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(YounesSpace.xxs))
+                    Text("إعادة الاكتشاف", color = accent, fontSize = 12.sp, fontFamily = PlexArabicFamily)
+                }
+                TextButton(onClick = { runDiagnostics(serverInput.ifBlank { currentServerUrl(server) }) }, enabled = !diagnosticsRunning) {
+                    Icon(YounesIcons.NetworkCheck, null, tint = accent, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(YounesSpace.xxs))
+                    Text(if (diagnosticsRunning) "جارٍ التشخيص…" else "تشخيص الاتصال", color = accent, fontSize = 12.sp, fontFamily = PlexArabicFamily)
+                }
             }
 
-            // ── إدخال عنوان الخادم يدويًا — يعالج حالات الخادم على شبكة أخرى أو عبر نفق ──
+            // تقرير التشخيص الطبقي — يحل محل رسالة «تعذر الاتصال» الغامضة.
+            report?.let { result ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = authField()),
+                    shape = RoundedCornerShape(YounesRadius.field)
+                ) {
+                    Column(Modifier.padding(YounesSpace.s), verticalArrangement = Arrangement.spacedBy(YounesSpace.xxs)) {
+                        result.steps.forEach { step ->
+                            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+                                Icon(
+                                    if (step.ok) YounesIcons.Success else YounesIcons.Error,
+                                    null,
+                                    tint = if (step.ok) YounesSuccess else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(YounesIconSizeSmall)
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(step.title, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = PlexArabicFamily)
+                                    Text(step.detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontFamily = PlexArabicFamily)
+                                    if (step.hint.isNotBlank()) {
+                                        Text(step.hint, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontFamily = PlexArabicFamily)
+                                    }
+                                }
+                            }
+                        }
+                        Text(result.summary, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, fontFamily = PlexArabicFamily)
+                    }
+                }
+            }
+
             if (!showManualInput) {
-                TextButton({ showManualInput = true; serverInputError = null }) {
-                    Text("تحديد عنوان الخادم يدويًا", color = TextSilver, fontSize = 12.sp)
+                TextButton(onClick = { showManualInput = true; serverInputError = null }) {
+                    Text("تحديد عنوان الخادم يدويًا", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontFamily = PlexArabicFamily)
                 }
             } else {
                 OutlinedTextField(
                     value = serverInput,
                     onValueChange = { serverInput = it; serverInputError = null },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("http://192.168.1.10:8088", color = TextMuted) },
+                    placeholder = { Text("192.168.1.50:8088 أو http://red.local:8088", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextWhite, unfocusedTextColor = TextWhite,
-                        focusedBorderColor = CleanAccentBlue, unfocusedBorderColor = TelegramBorder,
-                        cursorColor = CleanAccentBlue
-                    )
+                    textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = PlexArabicFamily),
+                    colors = fieldColors()
                 )
-                serverInputError?.let { Text(it, color = ErrorRed, fontSize = 11.sp, textAlign = TextAlign.Center) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton({
-                        val error = setServerUrl(serverInput)
-                        serverInputError = error
-                        if (error == null) showManualInput = false
-                    }) { Text("حفظ والاتصال", color = CleanAccentBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-                    TextButton({ showManualInput = false; serverInputError = null }) { Text("إلغاء", color = TextSilver, fontSize = 12.sp) }
+                serverInputError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, textAlign = TextAlign.Center, fontFamily = PlexArabicFamily) }
+                Row(horizontalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+                    Button(
+                        onClick = {
+                            val error = setServerUrl(serverInput)
+                            serverInputError = error
+                            if (error == null) {
+                                showManualInput = false
+                                runDiagnostics(serverInput)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = YounesOnBrand)
+                    ) { Text("حفظ", fontSize = 12.sp, fontFamily = PlexArabicFamily) }
+                    OutlinedButton(onClick = { showManualInput = false; serverInputError = null }) {
+                        Text("إلغاء", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = PlexArabicFamily)
+                    }
                 }
             }
         }
     }
 
-    Spacer(Modifier.height(24.dp))
-    
-    // Top Action Buttons
+    Spacer(Modifier.height(YounesSpace.l))
     Button(
         onClick = register,
-        modifier = Modifier.fillMaxWidth().height(50.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = CleanAccentGreen),
-        shape = RoundedCornerShape(25.dp)
-    ) {
-        Text("إنشاء حساب جديد", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-    }
-
-    Spacer(Modifier.height(12.dp))
-
+        modifier = Modifier.fillMaxWidth().height(YounesSpace.minTouch),
+        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = YounesOnBrand),
+        shape = RoundedCornerShape(YounesRadius.pill)
+    ) { Text("إنشاء حساب سيادي", fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = PlexArabicFamily) }
+    Spacer(Modifier.height(YounesSpace.xs))
     OutlinedButton(
         onClick = login,
-        modifier = Modifier.fillMaxWidth().height(50.dp),
-        shape = RoundedCornerShape(25.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CleanAccentBlue)
+        modifier = Modifier.fillMaxWidth().height(YounesSpace.minTouch),
+        shape = RoundedCornerShape(YounesRadius.pill)
+    ) { Text("لدي حساب بالفعل", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontFamily = PlexArabicFamily) }
+    Spacer(Modifier.height(YounesSpace.s))
+    Text(
+        "مفاتيحك تُولَّد داخل الجهاز ولا تغادره أبداً",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 11.sp,
+        textAlign = TextAlign.Center,
+        fontFamily = PlexArabicFamily
+    )
+}
+
+private val YounesIconSizeSmall = 16.dp
+private val YounesIconSizeMedium = 20.dp
+
+private fun currentServerUrl(server: ServerState): String = when (server) {
+    is ServerState.Ready -> server.url
+    is ServerState.Error -> server.fallbackUrl
+    ServerState.Discovering -> ""
+}
+
+@Composable
+private fun StatusPill(text: String, positive: Boolean) {
+    val color = if (positive) YounesSuccess else MaterialTheme.colorScheme.error
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(YounesSpace.xxs),
+        modifier = Modifier
+            .clip(RoundedCornerShape(YounesRadius.pill))
+            .background(color.copy(alpha = 0.12f))
+            .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(YounesRadius.pill))
+            .padding(horizontal = YounesSpace.s, vertical = YounesSpace.xxs)
     ) {
-        Text("لدي حساب بالفعل", color = CleanAccentBlue, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Icon(if (positive) YounesIcons.Success else YounesIcons.Warning, null, tint = color, modifier = Modifier.size(16.dp))
+        Text(text, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontFamily = PlexArabicFamily)
     }
 }
 
-/**
- * شاشة تبويب إنشاء حساب جديد مع شريط تنقل علوي سلس بين (إنشاء حساب / تسجيل الدخول)
- */
+@Composable
+private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = authField(),
+    unfocusedContainerColor = authField(),
+    focusedBorderColor = authAccent(),
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    cursorColor = authAccent()
+)
+
 @Composable
 private fun RegisterTabScreen(
-    submitRegister: (String, String, String) -> Unit,
-    switchToLogin: () -> Unit,
-    back: () -> Unit
+    submit: (String, String, String) -> Unit,
+    goLogin: () -> Unit,
+    goWelcome: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirm by remember { mutableStateOf("") }
-
-    val validUsername = username.matches(Regex("^[A-Za-z][A-Za-z0-9_.]{2,31}$"))
-    val passwordsMatch = password.isNotEmpty() && password == confirm
-    val validPassword = password.length in 12..128 && !password.contains(username, ignoreCase = true)
-    val valid = name.trim().length in 2..100 && validUsername && validPassword && passwordsMatch
-
-    FormColumn("إنشاء حساب سيادي جديد") {
-        // Tab Segmented Selector (إنشاء حساب | لدي حساب)
-        AuthTabSelector(selectedTab = 0, onSelectTab = { if (it == 1) switchToLogin() })
-
-        Spacer(Modifier.height(14.dp))
-
-        Text(
-            text = "لا نطلب رقم هاتف أو شريحة. يتم توليد مفاتيح التشفير الخاصة بك محلياً بداخل هاتفك.",
-            color = TextSilver,
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center,
-            lineHeight = 19.sp
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Field(name, { name = it }, "الاسم الظاهر (مثال: يونس أحمد)", leading = { Icon(Icons.Default.Badge, null, tint = CleanAccentBlue) })
-        
-        Field(
-            value = username,
-            change = { username = it.trim().take(32) },
-            label = "اسم المستخدم (الاسم المعرّف)",
-            keyboard = KeyboardOptions(imeAction = ImeAction.Next),
-            leading = { Icon(Icons.Default.Person, null, tint = CleanAccentBlue) }
-        )
-        if (username.isNotEmpty() && !validUsername) {
-            Text("يجب أن يكون 3-32 حرفاً إنكليزياً ويبدأ بحرف دون مسافات.", color = ErrorRed, fontSize = 11.sp)
-        }
-
-        PasswordField(password, { password = it.take(128) }, "كلمة المرور (12 حرفاً على الأقل)")
-        if (password.isNotEmpty()) {
-            PasswordStrengthBar(password, username)
-        }
-
-        PasswordField(confirm, { confirm = it.take(128) }, "تأكيد كلمة المرور")
-        if (confirm.isNotEmpty()) {
-            if (passwordsMatch) {
-                Text("كلمتا المرور متطابقتان ✓", color = CleanAccentGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            } else {
-                Text("كلمتا المرور غير متطابقتين ❌", color = ErrorRed, fontSize = 12.sp)
+    var error by remember { mutableStateOf<String?>(null) }
+    FormColumn(title = "إنشاء حساب") {
+        Field(value = displayName, change = { displayName = it; error = null }, label = "الاسم الظاهر", leading = YounesIcons.Person, keyboard = KeyboardOptions(imeAction = ImeAction.Next))
+        Field(value = username, change = { username = it; error = null }, label = "اسم المستخدم (إنكليزي)", leading = YounesIcons.PersonAdd, keyboard = KeyboardOptions(imeAction = ImeAction.Next))
+        PasswordField(value = password, change = { password = it; error = null }, label = "كلمة المرور (12 حرفاً على الأقل)")
+        PasswordStrengthBar(password, username)
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, textAlign = TextAlign.Center, fontFamily = PlexArabicFamily) }
+        PrimaryButton("إنشاء الحساب المشفّر") {
+            error = when {
+                displayName.isBlank() -> "أدخل الاسم الظاهر"
+                username.length < 3 -> "اسم المستخدم 3 أحرف على الأقل"
+                password.length < 12 -> "كلمة المرور 12 حرفاً على الأقل"
+                else -> null
             }
+            if (error == null) submit(displayName, username, password)
         }
-
-        Spacer(Modifier.height(10.dp))
-
-        Button(
-            onClick = { submitRegister(name, username, password) },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = valid,
-            colors = ButtonDefaults.buttonColors(containerColor = CleanAccentGreen, disabledContainerColor = CleanAccentGreen.copy(alpha = 0.3f)),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Text("إنشاء المفاتيح وإرسال الطلب", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        }
-
-        OutlinedButton(
-            onClick = back,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(24.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, TelegramBorder)
-        ) {
-            Text("رجوع للشاشة الرئيسية", color = TextSilver, fontSize = 14.sp)
-        }
+        TextButtonLink("لديك حساب؟ سجّل الدخول", goLogin)
+        TextButtonLink("العودة", goWelcome)
     }
 }
 
-/**
- * شاشة تبويب تسجيل الدخول للحسابات القائمة
- */
 @Composable
 private fun LoginTabScreen(
-    submitLogin: (String, String) -> Unit,
-    switchToRegister: () -> Unit,
-    showRecovery: () -> Unit,
-    back: () -> Unit
+    submit: (String, String) -> Unit,
+    goRegister: () -> Unit,
+    goRecovery: () -> Unit,
+    goWelcome: () -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    FormColumn("تسجيل الدخول للحساب") {
-        // Tab Segmented Selector (إنشاء حساب | لدي حساب)
-        AuthTabSelector(selectedTab = 1, onSelectTab = { if (it == 0) switchToRegister() })
-
-        Spacer(Modifier.height(14.dp))
-
-        Field(username, { username = it }, "اسم المستخدم المعرّف", leading = { Icon(Icons.Default.Person, null, tint = CleanAccentBlue) })
-        
-        PasswordField(password, { password = it }, "كلمة المرور")
-
-        Spacer(Modifier.height(6.dp))
-
-        Button(
-            onClick = { submitLogin(username, password) },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = username.isNotBlank() && password.isNotBlank(),
-            colors = ButtonDefaults.buttonColors(containerColor = CleanAccentGreen),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Text("تسجيل الدخول", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    var error by remember { mutableStateOf<String?>(null) }
+    FormColumn(title = "تسجيل الدخول") {
+        Field(value = username, change = { username = it; error = null }, label = "اسم المستخدم أو معرّف يونس", leading = YounesIcons.Person, keyboard = KeyboardOptions(imeAction = ImeAction.Next))
+        PasswordField(value = password, change = { password = it; error = null }, label = "كلمة المرور")
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, textAlign = TextAlign.Center, fontFamily = PlexArabicFamily) }
+        PrimaryButton("دخول آمن") {
+            error = if (username.isBlank() || password.isBlank()) "أدخل اسم المستخدم وكلمة المرور" else null
+            if (error == null) submit(username, password)
         }
-
-        TextButton(onClick = showRecovery, modifier = Modifier.fillMaxWidth()) {
-            Text("نسيت كلمة المرور؟ استخدم رمز الاستعادة المحفوظ 🔐", color = CleanAccentBlue, fontSize = 13.sp)
-        }
-
-        OutlinedButton(
-            onClick = back,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(24.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, TelegramBorder)
-        ) {
-            Text("رجوع للشاشة الرئيسية", color = TextSilver, fontSize = 14.sp)
-        }
-    }
-}
-
-@Composable
-private fun AuthTabSelector(selectedTab: Int, onSelectTab: (Int) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(44.dp)
-            .background(TelegramDarkInput, RoundedCornerShape(22.dp))
-            .padding(3.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(20.dp))
-                .background(if (selectedTab == 0) CleanAccentGreen else Color.Transparent)
-                .clickable { onSelectTab(0) },
-            contentAlignment = Alignment.Center
-        ) {
-            Text("إنشاء حساب جديد", color = if (selectedTab == 0) TextWhite else TextSilver, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        }
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(20.dp))
-                .background(if (selectedTab == 1) CleanAccentBlue else Color.Transparent)
-                .clickable { onSelectTab(1) },
-            contentAlignment = Alignment.Center
-        ) {
-            Text("لدي حساب بالفعل", color = if (selectedTab == 1) TextWhite else TextSilver, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        }
+        TextButtonLink("نسيت كلمة المرور؟ استعادة", goRecovery)
+        TextButtonLink("إنشاء حساب جديد", goRegister)
+        TextButtonLink("العودة", goWelcome)
     }
 }
 
@@ -379,30 +447,13 @@ private fun AuthTabSelector(selectedTab: Int, onSelectTab: (Int) -> Unit) {
 private fun RecoveryScreen(submit: (String, String, String) -> Unit, back: () -> Unit) {
     var redId by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirm by remember { mutableStateOf("") }
-
-    FormColumn("استعادة كلمة المرور بدون سيرفر") {
-        Text("أدخل معرّف يونس وأحد رموز الاستعادة التي قمت بنسخها عند إنشاء الحساب.", color = TextSilver, fontSize = 13.sp, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(10.dp))
-        Field(redId, { redId = it.uppercase() }, "معرّف يونس (RED ID)")
-        Field(code, { code = it.uppercase() }, "رمز الاستعادة (Recovery Code)")
-        PasswordField(password, { password = it.take(128) }, "كلمة المرور الجديدة")
-        PasswordField(confirm, { confirm = it.take(128) }, "تأكيد كلمة المرور الجديدة")
-        
-        Spacer(Modifier.height(10.dp))
-        Button(
-            onClick = { submit(redId, code, password) },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = redId.isNotBlank() && code.isNotBlank() && password.length >= 12 && password == confirm,
-            colors = ButtonDefaults.buttonColors(containerColor = CleanAccentGreen),
-            shape = RoundedCornerShape(24.dp)
-        ) {
-            Text("تغيير كلمة المرور وإلغاء الجلسات", color = TextWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        }
-        OutlinedButton(onClick = back, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp)) {
-            Text("إلغاء والعودة", color = TextSilver)
-        }
+    var newPassword by remember { mutableStateOf("") }
+    FormColumn(title = "استعادة الحساب") {
+        Field(redId, { redId = it }, "معرّف يونس", leading = YounesIcons.Badge)
+        Field(code, { code = it }, "رمز الاستعادة", leading = YounesIcons.Key)
+        PasswordField(newPassword, { newPassword = it }, "كلمة المرور الجديدة")
+        PrimaryButton("تغيير كلمة المرور") { submit(redId, code, newPassword) }
+        TextButtonLink("العودة لتسجيل الدخول", back)
     }
 }
 
@@ -410,123 +461,142 @@ private fun RecoveryScreen(submit: (String, String, String) -> Unit, back: () ->
 private fun PendingScreen(state: AuthState.Pending, check: () -> Unit, login: () -> Unit) {
     val clipboard = LocalClipboardManager.current
     Centered {
-        Icon(Icons.Default.AdminPanelSettings, null, tint = CleanAccentBlue, modifier = Modifier.size(72.dp))
-        Spacer(Modifier.height(10.dp))
-        Text("طلب الحساب بانتظار الاعتماد ⏳", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-        Text("تم إنشاء مفاتيح هويتك المشفرة بنجاح داخل هاتفك ولن تغادر جهازك.", color = TextSilver, textAlign = TextAlign.Center, fontSize = 13.sp)
-        
-        Spacer(Modifier.height(14.dp))
-        
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = TelegramDarkInput)) {
-            Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("معرّف يونس الخاص بك:", color = TextMuted, fontSize = 11.sp)
+        Icon(YounesIcons.Shield, null, tint = authAccent(), modifier = Modifier.size(72.dp))
+        Spacer(Modifier.height(YounesSpace.s))
+        Text("طلب الحساب بانتظار الاعتماد ⏳", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontFamily = PlexArabicFamily)
+        Text(
+            "تم إنشاء مفاتيح هويتك المشفرة داخل هاتفك ولن تغادر جهازك.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            fontSize = 13.sp,
+            fontFamily = PlexArabicFamily
+        )
+        Spacer(Modifier.height(YounesSpace.m))
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = authSurface()), shape = RoundedCornerShape(YounesRadius.card)) {
+            Column(Modifier.padding(YounesSpace.m), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("معرّف يونس الخاص بك:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontFamily = PlexArabicFamily)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(state.redId, color = CleanAccentBlue, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(state.redId, color = authAccent(), fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = PlexArabicFamily)
                     IconButton(onClick = { clipboard.setText(AnnotatedString(state.redId)) }) {
-                        Icon(Icons.Default.ContentCopy, "نسخ", tint = CleanAccentBlue, modifier = Modifier.size(18.dp))
+                        Icon(YounesIcons.Copy, "نسخ المعرّف", tint = authAccent(), modifier = Modifier.size(18.dp))
                     }
                 }
             }
         }
-
         if (state.recoveryCodes.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF2C1618))) {
-                Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("⚠️ رموز الاستعادة — احفظها في مكان آمن خارج الهاتف", color = ErrorRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(state.recoveryCodes.joinToString("  •  "), fontSize = 12.sp, color = TextWhite, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold)
-                    OutlinedButton(
-                        onClick = { clipboard.setText(AnnotatedString(state.recoveryCodes.joinToString("\n"))) },
-                        modifier = Modifier.fillMaxWidth(),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f))
-                    ) {
-                        Icon(Icons.Default.ContentCopy, null, tint = ErrorRed, modifier = Modifier.size(16.dp))
-                        Text(" نسخ كافة الرموز الحافظة", color = ErrorRed, fontSize = 12.sp)
+            Spacer(Modifier.height(YounesSpace.s))
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)), shape = RoundedCornerShape(YounesRadius.card)) {
+                Column(Modifier.padding(YounesSpace.m), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(YounesSpace.xs)) {
+                    Text("⚠️ رموز الاستعادة — احفظها خارج الهاتف", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = PlexArabicFamily)
+                    Text(state.recoveryCodes.joinToString("  •  "), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, fontFamily = PlexArabicFamily)
+                    OutlinedButton(onClick = { clipboard.setText(AnnotatedString(state.recoveryCodes.joinToString("\n"))) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(YounesIcons.Copy, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(YounesSpace.xxs))
+                        Text("نسخ كل الرموز", color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontFamily = PlexArabicFamily)
                     }
                 }
             }
         }
-
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = check, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = CleanAccentGreen), shape = RoundedCornerShape(24.dp)) {
-            Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
-            Text(" التحقق من اعتماد الحساب", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = login, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(24.dp)) {
-            Text("تسجيل الدخول لاحقاً", color = TextSilver)
-        }
+        Spacer(Modifier.height(YounesSpace.m))
+        PrimaryButton("التحقق من اعتماد الحساب", check)
+        Spacer(Modifier.height(YounesSpace.xs))
+        TextButtonLink("تسجيل الدخول لاحقاً", login)
     }
 }
 
 @Composable
 private fun StatusScreen(title: String, description: String, action: () -> Unit) = Centered {
-    Icon(Icons.Default.Lock, null, tint = CleanAccentBlue, modifier = Modifier.size(64.dp))
-    Spacer(Modifier.height(12.dp))
-    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-    Spacer(Modifier.height(6.dp))
-    Text(description, textAlign = TextAlign.Center, color = TextSilver, fontSize = 14.sp)
-    Spacer(Modifier.height(20.dp))
-    Button(onClick = action, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = CleanAccentGreen), shape = RoundedCornerShape(24.dp)) {
-        Text("متابعة", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-    }
+    Icon(YounesIcons.Lock, null, tint = authAccent(), modifier = Modifier.size(64.dp))
+    Spacer(Modifier.height(YounesSpace.s))
+    Text(title, fontSize = 21.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, fontFamily = PlexArabicFamily)
+    Spacer(Modifier.height(YounesSpace.xs))
+    Text(description, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, fontFamily = PlexArabicFamily)
+    Spacer(Modifier.height(YounesSpace.l))
+    PrimaryButton("متابعة", action)
 }
 
 @Composable
 private fun ErrorStatusScreen(title: String, description: String, action: () -> Unit) = Centered {
-    Icon(Icons.Default.Error, null, tint = ErrorRed, modifier = Modifier.size(64.dp))
-    Spacer(Modifier.height(12.dp))
-    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
-    Spacer(Modifier.height(8.dp))
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF2C1618))) {
-        Text(description, textAlign = TextAlign.Center, color = TextWhite, fontSize = 14.sp, modifier = Modifier.padding(14.dp))
+    Icon(YounesIcons.Error, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(64.dp))
+    Spacer(Modifier.height(YounesSpace.s))
+    Text(title, fontSize = 21.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, fontFamily = PlexArabicFamily)
+    Spacer(Modifier.height(YounesSpace.xs))
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f))) {
+        Text(description, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, modifier = Modifier.padding(YounesSpace.m), fontFamily = PlexArabicFamily)
     }
-    Spacer(Modifier.height(20.dp))
-    Button(onClick = action, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = CleanAccentBlue), shape = RoundedCornerShape(24.dp)) {
-        Text("محاولة أخرى", color = TextWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(YounesSpace.l))
+    PrimaryButton("محاولة أخرى", action)
+}
+
+/** العلامة: نبضة واحدة بطيئة تحترم reduceMotion، بصورة متجهة لا PNG ضخمة. */
+@Composable
+private fun BrandMarkAnimated(size: Int) {
+    val still = AppThemeState.reduceMotion || AppThemeState.highContrast
+    val scale = if (still) 1f else {
+        val transition = rememberInfiniteTransition(label = "brand")
+        transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.035f,
+            animationSpec = infiniteRepeatable(tween(YounesMotion.SLOW_MS * 4, easing = LinearEasing), RepeatMode.Reverse),
+            label = "brand_scale"
+        ).value
+    }
+    Box(
+        Modifier
+            .size(size.dp)
+            .scale(scale)
+            .background(Brush.radialGradient(listOf(YounesPrimary.copy(alpha = 0.28f), Color.Transparent)), CircleShape)
+            .border(1.5.dp, YounesPrimary.copy(alpha = 0.65f), CircleShape)
+            .padding(YounesSpace.s),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(R.drawable.younes_icon_master_vector),
+            contentDescription = "شعار يونس",
+            modifier = Modifier.fillMaxSize().clip(CircleShape),
+            contentScale = ContentScale.Fit
+        )
     }
 }
 
 @Composable
-private fun BrandMark(size: Int) = Box(
-    Modifier.size(size.dp)
-        .background(Brush.radialGradient(listOf(CleanAccentGreen.copy(alpha = 0.3f), Color.Transparent)), CircleShape)
-        .border(1.dp, CleanAccentGreen.copy(alpha = 0.6f), CircleShape)
-        .padding(6.dp),
-    contentAlignment = Alignment.Center
-) {
-    Image(
-        painterResource(R.drawable.younes_icon_master),
-        contentDescription = "يونس",
-        modifier = Modifier.fillMaxSize().clip(CircleShape),
-        contentScale = ContentScale.Crop
+private fun Centered(scrollable: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val scrollModifier = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
+    Column(
+        Modifier
+            .fillMaxSize()
+            .then(scrollModifier)
+            .padding(horizontal = YounesSpace.screen, vertical = YounesSpace.m)
+            .widthIn(max = 520.dp)
+            .animateContentSize(),
+        Arrangement.Center,
+        Alignment.CenterHorizontally,
+        content = content
     )
 }
 
 @Composable
-private fun Centered(content: @Composable ColumnScope.() -> Unit) = Column(
-    Modifier.fillMaxSize().background(TelegramDarkBg).padding(horizontal = 24.dp, vertical = 18.dp).widthIn(max = 520.dp).animateContentSize(),
-    Arrangement.Center,
-    Alignment.CenterHorizontally,
-    content = content
-)
-
-@Composable
 private fun FormColumn(title: String, content: @Composable ColumnScope.() -> Unit) = Column(
-    Modifier.fillMaxSize().background(TelegramDarkBg).padding(horizontal = 16.dp, vertical = 16.dp).widthIn(max = 520.dp).verticalScroll(rememberScrollState()),
-    Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
+    Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(horizontal = YounesSpace.m, vertical = YounesSpace.m)
+        .widthIn(max = 520.dp)
+        .animateContentSize(),
+    Arrangement.spacedBy(YounesSpace.xs, Alignment.CenterVertically),
     Alignment.CenterHorizontally
 ) {
-    BrandMark(64)
-    Spacer(Modifier.height(10.dp))
-    Text("منظومة يونس السيادية 🛡️", style = MaterialTheme.typography.titleLarge, color = TextWhite, fontWeight = FontWeight.Bold)
-    Spacer(Modifier.height(14.dp))
+    BrandMarkAnimated(72)
+    Spacer(Modifier.height(YounesSpace.xs))
+    Text("منظومة يونس السيادية 🛡️", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontFamily = PlexArabicFamily)
+    Text(title, color = authAccent(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, fontFamily = PlexArabicFamily)
+    Spacer(Modifier.height(YounesSpace.s))
     Card(
         Modifier.fillMaxWidth().animateContentSize(),
-        colors = CardDefaults.cardColors(containerColor = TelegramDarkCard),
-        shape = RoundedCornerShape(20.dp)
+        colors = CardDefaults.cardColors(containerColor = authSurface()),
+        shape = RoundedCornerShape(YounesRadius.card)
     ) {
-        Column(Modifier.fillMaxWidth().padding(18.dp), Arrangement.spacedBy(12.dp), content = content)
+        Column(Modifier.fillMaxWidth().padding(YounesSpace.l), Arrangement.spacedBy(YounesSpace.s), content = content)
     }
 }
 
@@ -536,24 +606,18 @@ private fun Field(
     change: (String) -> Unit,
     label: String,
     keyboard: KeyboardOptions = KeyboardOptions.Default,
-    leading: (@Composable () -> Unit)? = null
+    leading: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) = OutlinedTextField(
     value = value,
     onValueChange = change,
     modifier = Modifier.fillMaxWidth(),
-    label = { Text(label, color = TextSilver, fontSize = 13.sp) },
-    leadingIcon = leading,
+    label = { Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontFamily = PlexArabicFamily) },
+    leadingIcon = leading?.let { { Icon(it, null, tint = authAccent(), modifier = Modifier.size(YounesIconSizeMedium)) } },
     singleLine = true,
     keyboardOptions = keyboard,
-    colors = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = TelegramDarkInput,
-        unfocusedContainerColor = TelegramDarkInput,
-        focusedBorderColor = CleanAccentGreen,
-        unfocusedBorderColor = TelegramBorder,
-        focusedTextColor = TextWhite,
-        unfocusedTextColor = TextWhite
-    ),
-    shape = RoundedCornerShape(12.dp)
+    textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = PlexArabicFamily),
+    colors = fieldColors(),
+    shape = RoundedCornerShape(YounesRadius.field)
 )
 
 @Composable
@@ -563,24 +627,22 @@ private fun PasswordField(value: String, change: (String) -> Unit, label: String
         value = value,
         onValueChange = change,
         modifier = Modifier.fillMaxWidth(),
-        label = { Text(label, color = TextSilver, fontSize = 13.sp) },
-        leadingIcon = { Icon(Icons.Default.Lock, null, tint = CleanAccentBlue) },
+        label = { Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontFamily = PlexArabicFamily) },
+        leadingIcon = { Icon(YounesIcons.Lock, null, tint = authAccent(), modifier = Modifier.size(YounesIconSizeMedium)) },
         trailingIcon = {
             IconButton(onClick = { visible = !visible }) {
-                Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "إخفاء" else "إظهار", tint = TextSilver)
+                Icon(
+                    if (visible) YounesIcons.VisibilityOff else YounesIcons.Visibility,
+                    if (visible) "إخفاء كلمة المرور" else "إظهار كلمة المرور",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         singleLine = true,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = TelegramDarkInput,
-            unfocusedContainerColor = TelegramDarkInput,
-            focusedBorderColor = CleanAccentGreen,
-            unfocusedBorderColor = TelegramBorder,
-            focusedTextColor = TextWhite,
-            unfocusedTextColor = TextWhite
-        ),
-        shape = RoundedCornerShape(12.dp)
+        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = PlexArabicFamily),
+        colors = fieldColors(),
+        shape = RoundedCornerShape(YounesRadius.field)
     )
 }
 
@@ -594,9 +656,30 @@ private fun PasswordStrengthBar(password: String, username: String) {
     if (username.isNotBlank() && password.contains(username, ignoreCase = true)) score = 0
 
     val label = when (score) { 0, 1 -> "ضعيفة ⚠️"; 2 -> "مقبولة 🟡"; 3 -> "قوية 🟢"; else -> "قوية جدًا 🛡️" }
-    val color = when (score) { 0, 1 -> ErrorRed; 2 -> Color(0xFFFF9800); else -> CleanAccentGreen }
-    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        LinearProgressIndicator(progress = { score / 4f }, modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)), color = color)
-        Text("قوة كلمة المرور: $label", color = color, style = MaterialTheme.typography.bodySmall, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+    val color = when (score) {
+        0, 1 -> MaterialTheme.colorScheme.error
+        2 -> YounesAccent
+        else -> YounesSuccess
     }
+    Column(Modifier.fillMaxWidth().padding(vertical = YounesSpace.xxxs)) {
+        LinearProgressIndicator(
+            progress = { score / 4f },
+            modifier = Modifier.fillMaxWidth().height(YounesSpace.xxs).clip(RoundedCornerShape(YounesSpace.xxxs)),
+            color = color
+        )
+        Text("قوة كلمة المرور: $label", color = color, fontSize = 11.sp, fontFamily = PlexArabicFamily)
+    }
+}
+
+@Composable
+private fun PrimaryButton(text: String, onClick: () -> Unit) = Button(
+    onClick = onClick,
+    modifier = Modifier.fillMaxWidth().height(YounesSpace.minTouch),
+    colors = ButtonDefaults.buttonColors(containerColor = authAccent(), contentColor = YounesOnBrand),
+    shape = RoundedCornerShape(YounesRadius.pill)
+) { Text(text, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = PlexArabicFamily) }
+
+@Composable
+private fun TextButtonLink(text: String, onClick: () -> Unit) = TextButton(onClick = onClick) {
+    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontFamily = PlexArabicFamily)
 }

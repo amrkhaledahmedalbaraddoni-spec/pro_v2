@@ -86,11 +86,15 @@ class MeshRtcSession(
     )
 
     // P0: مصدر VOICE_COMMUNICATION الصريح (كان الافتراضي MIC يلتقط ضجيجاً + بلا error callbacks)
-    private val audioDevice = JavaAudioDeviceModule.builder(context)
-        .setUseHardwareAcousticEchoCanceler(hwAecMesh)
-        .setUseHardwareNoiseSuppressor(hwNsMesh)
-        .setAudioSource(android.media.MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-        .createAudioDeviceModule()
+    // P0 2026-10-28: lazy بعد WebRtcBootstrap.ensure() — مؤشر ADM الأصلي يحتاج
+    // المكتبة المحمّلة؛ كان يُنشأ قبلها فيرمي UnsatisfiedLinkError على بعض الأجهزة.
+    private val audioDevice: JavaAudioDeviceModule by lazy {
+        JavaAudioDeviceModule.builder(context)
+            .setUseHardwareAcousticEchoCanceler(hwAecMesh)
+            .setUseHardwareNoiseSuppressor(hwNsMesh)
+            .setAudioSource(android.media.MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+            .createAudioDeviceModule()
+    }
 
     private val factory: PeerConnectionFactory
     private val peers = ConcurrentHashMap<String, PeerSlot>()
@@ -326,7 +330,7 @@ class MeshRtcSession(
     }
 
     fun switchCamera() {
-        (capturer as? org.webrtc.CameraVideoCapturer)?.switchCamera(null)
+        CameraCaptureFactory.switchCamera(capturer, tag = "mesh")
     }
 
     // ── Screen Share للـ Mesh (لكل الأقران) ──
@@ -469,72 +473,69 @@ class MeshRtcSession(
         }
     }
 
+    /** يحرّر موارد الالتقاط بأمان قبل كل محاولة/إعادة محاولة. */
+    private fun releaseCameraResources() {
+        runCatching { capturer?.stopCapture() }
+        runCatching { capturer?.dispose() }
+        runCatching { textureHelper?.dispose() }
+        runCatching { videoSource?.dispose() }
+        capturer = null
+        textureHelper = null
+        videoSource = null
+    }
+
     private fun createVideoTrack(): VideoTrack? {
-        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA)
-            != android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
+        if (!CameraCaptureFactory.hasCameraPermission(context)) {
             android.util.Log.w("MeshRtcSession", "createVideoTrack: CAMERA permission not granted")
             events.onCameraUnavailable()
             return null
         }
-        return runCatching {
-            val selected = camera(context) ?: run {
-                android.util.Log.e("MeshRtcSession", "createVideoTrack: failed to create capturer")
-                events.onCameraUnavailable()
-                return null
-            }
-            capturer = selected
-            videoSource = factory.createVideoSource(false)
+        releaseCameraResources()
+        val selected = CameraCaptureFactory.create(context, preferFront = true, tag = "mesh").capturer
+        if (selected == null) {
+            android.util.Log.e("MeshRtcSession", "createVideoTrack: failed to create capturer")
+            events.onCameraUnavailable()
+            return null
+        }
+        capturer = selected
+        var track: VideoTrack? = null
+        try {
+            val source = factory.createVideoSource(false)
+            videoSource = source
             textureHelper = SurfaceTextureHelper.create("YounesMeshCamera", egl.eglBaseContext)
-            selected.initialize(textureHelper, context, videoSource?.capturerObserver)
-            var started = false
-            val attempts = listOf(Triple(640, 480, 24), Triple(640, 360, 24), Triple(320, 240, 15))
-            for ((w, h, fps) in attempts) {
-                try {
-                    selected.startCapture(w, h, fps)
-                    started = true
-                    android.util.Log.d("MeshRtcSession", "createVideoTrack: startCapture success ${w}x${h}@${fps}")
-                    break
-                } catch (e: Exception) {
-                    android.util.Log.w("MeshRtcSession", "createVideoTrack: startCapture ${w}x${h} failed: ${e.message}")
-                    runCatching { selected.stopCapture() }
+            val observer = source?.capturerObserver
+            val helper = textureHelper
+            if (source == null || observer == null || helper == null) {
+                android.util.Log.e("MeshRtcSession", "createVideoTrack: source/observer/helper unavailable")
+            } else {
+                selected.initialize(helper, context, observer)
+                var started = false
+                val attempts = listOf(Triple(640, 480, 24), Triple(640, 360, 24), Triple(320, 240, 15))
+                for ((w, h, fps) in attempts) {
+                    try {
+                        selected.startCapture(w, h, fps)
+                        started = true
+                        android.util.Log.i("MeshRtcSession", "startCapture success ${w}x${h}@${fps}")
+                        break
+                    } catch (e: Exception) {
+                        android.util.Log.w("MeshRtcSession", "startCapture ${w}x${h} failed: ${e.message}")
+                        runCatching { selected.stopCapture() }
+                    }
+                }
+                if (started) {
+                    track = factory.createVideoTrack("younes-mesh-video", source).apply { setEnabled(cameraRequested) }
+                } else {
+                    android.util.Log.e("MeshRtcSession", "all startCapture attempts failed")
                 }
             }
-            if (!started) {
-                android.util.Log.e("MeshRtcSession", "createVideoTrack: all startCapture attempts failed")
-                events.onCameraUnavailable()
-                return null
-            }
-            factory.createVideoTrack("younes-mesh-video", videoSource).apply { setEnabled(cameraRequested) }
-        }.onFailure {
-            android.util.Log.e("MeshRtcSession", "createVideoTrack: exception ${it.message}", it)
+        } catch (e: Throwable) {
+            android.util.Log.e("MeshRtcSession", "createVideoTrack exception ${e.message}", e)
+        }
+        if (track == null) {
+            releaseCameraResources()
             events.onCameraUnavailable()
-            runCatching { capturer?.stopCapture() }
-            capturer?.dispose()
-            textureHelper?.dispose()
-            videoSource?.dispose()
-            capturer = null
-            textureHelper = null
-            videoSource = null
-        }.getOrNull()
-    }
-
-    private fun camera(context: Context): VideoCapturer? {
-        val camera2Capturer = runCatching {
-            val enumerator = Camera2Enumerator(context)
-            enumerator.deviceNames.firstOrNull(enumerator::isFrontFacing)?.let {
-                enumerator.createCapturer(it, null)
-            } ?: enumerator.deviceNames.firstNotNullOfOrNull { enumerator.createCapturer(it, null) }
-        }.getOrNull()
-
-        if (camera2Capturer != null) return camera2Capturer
-
-        return runCatching {
-            val enumerator = org.webrtc.Camera1Enumerator(true)
-            enumerator.deviceNames.firstOrNull(enumerator::isFrontFacing)?.let {
-                enumerator.createCapturer(it, null)
-            } ?: enumerator.deviceNames.firstNotNullOfOrNull { enumerator.createCapturer(it, null) }
-        }.getOrNull()
+        }
+        return track
     }
 
     fun retryCamera(): Boolean {

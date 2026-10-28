@@ -1,30 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- ═══════════════════════════════════════════════════════════════════
-     RELEASE / PRODUCTION — Network Security Policy
-     • Default is HTTPS-only (base-config cleartext=false).
-     • Cleartext HTTP is permitted ONLY for private LAN via <domain-config>
-       below (10/8, 172.16/12, 192.168/16 + localhost/emulator/.local).
-     • Android matches IP literals in <domain> exactly (no CIDR), so raw
-       scanned LAN IPs that miss the listed entries are still gated in code:
-       ServerEndpoint.isLocalCleartextHost rejects cleartext for any
-       non-local host (public internet) with a literal-IP check.
-     • App-level hardening still enforced in code: YounesServerSignature
-       on the wire + CertificatePinner on SecureOkHttpClient when TLS is used.
-     • User CAs trusted ONLY when debuggable (debug builds). Release keeps
-       system-only trust anchors.
+     RELEASE / PRODUCTION — Network Security Policy (LAN-first sovereign app)
+
+     P0 2026-10-28 — إصلاح «التطبيق لا يتصل بالسيرفر رغم أنهما بنفس الشبكة»:
+
+     كان الملف يضبط base-config cleartextTrafficPermitted="false" بلا أي
+     استثناء، وmanifest الإصدار كان usesCleartext="false". خادم يونس على LAN
+     يعمل افتراضياً عبر HTTP على المنفذ 8088 (شهادة TLS المولّدة محلياً
+     اختيارية). النتيجة: أي نسخة release تُثبَّت على الهاتف يُمنع عليها كل
+     اتصال HTTP من قِبل نظام أندرويد قبل أن يصل لعميل OkHttp — برسالة
+     "CLEARTEXT communication to 192.168.x.x not permitted by network security
+     policy". نسخة debug وحدها كانت تعمل (لأن src/debug overlay يسمح بذلك).
+
+     Android NSC لا يدعم CIDR داخل <domain>، لذلك لا يمكن حصر السماح بـ
+     192.168/16 أو 10/8 هنا. الحل المعتمد (وهو ما تفعله تطبيقات الخوادم
+     الذاتية الاستضافة):
+       • السماح بـ cleartext على مستوى النظام (base-config=true).
+       • فرض «محلي فقط» في الكود: ServerEndpoint.normalize() يرفض أي رابط
+         http:// مضيفه ليس loopback/10/172.16-31/192.168/.local/fe80/fc00.
+         كل عملاء الشبكة يمرّون عبر ServerEndpoint — لا يوجد مسار HTTP عام.
+       • منع صريح (defense-in-depth) لنطاقات عامة معروفة أدناه.
+       • HTTPS يبقى إلزامياً لأي مضيف عام (normalize يضيف https تلقائياً).
+       • شهادات المستخدم تُوثَّق في نسخ debug فقط عبر <debug-overrides>.
+
+     ملاحظة أمنية: إن أردت TLS كاملاً في الإنتاج، اضبط RED_TLS_PINS وشغّل
+     Nginx على 8443 ثم أعد base-config إلى false — الكود يدعم الاثنين.
      ═══════════════════════════════════════════════════════════════════ -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false">
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
 
-    <!-- Cleartext is not granted in release at all: <domain-config cleartextTrafficPermitted>
-         cannot express CIDR, so a literal-IP allow-list here (10.0.0.0, 192.168.0.0 …) was
-         both incomplete and, worse, a plaintext door in production builds. Development keeps
-         LAN cleartext through src/debug/res/xml/network_security_config.xml, and ServerEndpoint
-         .isLocalCleartextHost stays the code-side gate. -->
+    <!-- حظر صريح للنص الصريح تجاه نطاقات الإنترنت العامة الشائعة.
+         أي مضيف غير مدرج يخضع لحارس ServerEndpoint.isLocalCleartextHost. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">google.com</domain>
+        <domain includeSubdomains="true">gstatic.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">firebaseio.com</domain>
+        <domain includeSubdomains="true">github.com</domain>
+        <domain includeSubdomains="true">githubusercontent.com</domain>
+        <domain includeSubdomains="true">openrelayproject.io</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
 
     <!-- User CAs trusted only when debuggable (debug builds). Release keeps system-only. -->
     <debug-overrides>
@@ -33,7 +55,4 @@
             <certificates src="user" />
         </trust-anchors>
     </debug-overrides>
-
-    <!-- Example per-domain strict policy for RED server (when RED_TLS_PINS is set via BuildConfig):
-         Add pin-set here for defense-in-depth beyond OkHttp CertificatePinner -->
 </network-security-config>

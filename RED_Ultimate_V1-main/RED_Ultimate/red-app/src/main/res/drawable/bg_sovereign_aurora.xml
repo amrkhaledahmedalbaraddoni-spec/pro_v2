@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P0 2026-10-28 — خلفية موحّدة للشاشات/XML (splash, widgets, notification big views).
+     نفس هوية "ذهب الليل": أساس أوبسيديان مرفوع + هالة ذهب + هالة كوبالت.
+     لا أسود مسطّح (يحمي تفاصيل OLED) ولا ألفا عالية تُضعف تباين النص. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#FF101A29"
+                android:centerColor="#FF0A0F18"
+                android:endColor="#FF0B1320"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item android:gravity="top|center_horizontal" android:top="-140dp" android:left="-120dp" android:right="-120dp">
+        <shape android:shape="oval">
+            <gradient
+                android:gradientRadius="420dp"
+                android:centerColor="#1AD4B25A"
+                android:endColor="#00000000"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item android:gravity="bottom|end" android:bottom="-160dp" android:right="-160dp">
+        <shape android:shape="oval">
+            <gradient
+                android:gradientRadius="460dp"
+                android:centerColor="#144D9FE8"
+                android:endColor="#00000000"
+                android:type="radial" />
+        </shape>
+    </item>
+</layer-list>

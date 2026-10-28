@@ -107,23 +107,37 @@ class LocalServerDiscovery(private val context: Context) {
         ApiResult.Error(null, "YOUNES_SERVER_NOT_FOUND")
     }
 
+    /**
+     * P0 2026-10-28 — تحقق الهوية خلال **طلب واحد** في الحالة الطبيعية.
+     *
+     * كان `verify()` ينفّذ طلبين متتاليين (`/health` ثم `/api/identity/authority`)
+     * بمهلة قراءة 600ms لكل منهما. `/health` نفسه يشغّل 4 تحقيقات بقواعد البيانات
+     * (800ms) — فكانت المهلة تنتهي قبل وصول الرد، فيُرفض خادم سليم تماماً ويظهر
+     * للمستخدم «التطبيق لا يتصل بالسيرفر» رغم أنهما على نفس الشبكة.
+     *
+     * الجديد: `/health/live` (استجابة فورية بلا فحوص) أولاً، ثم `/health`
+     * للتوافق مع الإصدارات القديمة، ثم `/api/identity/authority` فقط عند الشك.
+     * كما رُفعت المهل إلى قيم واقعية لشبكة LAN مزدحمة.
+     */
     private fun verify(base: String): String? = runCatching {
         val normalized = base.trimEnd('/')
-        val healthCall = client.newCall(Request.Builder().url("$normalized/health").get().build())
-        val health = healthCall.execute().use { response ->
-            // 503 مع جسم يونس يعني أن العملية حيّة والتبعيات لم تكتمل بعد.
-            if (response.code !in 200..599) return null
-            response.body?.string().orEmpty()
-        }
-        if (!YounesServerSignature.isReadyHealth(health)) return null
 
-        val authorityCall = client.newCall(Request.Builder().url("$normalized/api/identity/authority").get().build())
-        val authority = authorityCall.execute().use { response ->
-            if (!response.isSuccessful) return@use ""
-            response.body?.string().orEmpty()
-        }
-        if (!YounesServerSignature.isYounesServer(health, authority)) return null
-        normalized
+        val live = getBody("$normalized${YounesServerSignature.LIVE_ENDPOINT}")
+        if (YounesServerSignature.isYounesLive(live.orEmpty())) return normalized
+
+        val health = getBody("$normalized${YounesServerSignature.HEALTH_ENDPOINT}")
+        if (!YounesServerSignature.isReadyHealth(health.orEmpty())) return null
+        if (YounesServerSignature.isYounesHealth(health.orEmpty())) return normalized
+
+        val authority = getBody("$normalized${YounesServerSignature.AUTHORITY_ENDPOINT}")
+        if (YounesServerSignature.isYounesServer(health.orEmpty(), authority.orEmpty())) return normalized
+        null
+    }.getOrNull()
+
+    /** يقرأ جسم الاستجابة لأي كود HTTP (503 DEGRADED جسمه مهم أيضاً). */
+    private fun getBody(url: String): String? = runCatching {
+        val response = client.newCall(Request.Builder().url(url).get().build()).execute()
+        response.use { if (it.code in 200..599) it.body?.string().orEmpty() else null }
     }.getOrNull()
 
     private suspend fun firstVerified(targets: Collection<String>, budgetMs: Long): String? {
@@ -342,21 +356,24 @@ nsdManager.stopServiceDiscovery(listener)
     private fun preferredPort(): Int = YounesServerSignature.portOf(ServerEndpoint.url(), 8080)
 
     private companion object {
-        const val CONNECT_MS = 250L
-        const val READ_MS = 600L
-        const val WRITE_MS = 400L
-        const val CALL_MS = 800L
+        // P0 2026-10-28: 250/600/800ms كانت أقل زمني استجابة `/health` الحقيقي
+        // فوق Nginx على LAN مزدحمة. الآن قيم واقعية مع سقف كلي لكل هدف،
+        // والبروتوكول نفسه أسرع (health/live) فلا نحتاج مهلًا طويلة إلا للـ fallback.
+        const val CONNECT_MS = 450L
+        const val READ_MS = 1_500L
+        const val WRITE_MS = 800L
+        const val CALL_MS = 2_800L
         // AUTO-FIX (discovery resilience): dedicated ~1s probe of the last known-good endpoint.
-        const val QUICK_PROBE_MS = 1_000L
+        const val QUICK_PROBE_MS = 1_500L
         // AUTO-FIX (discovery resilience): current-network derived candidates budget.
-        const val WIFI_BUDGET_MS = 2_500L
-        const val FAST_BUDGET_MS = 1_800L
+        const val WIFI_BUDGET_MS = 4_000L
+        const val FAST_BUDGET_MS = 3_000L
         // مسح /24 كامل (254 عنوانًا × حتى 3 منافذ) يحتاج هامشًا حقيقيًا —
-        // العناوين العالية (.192) تأتي متأخرة في الترتيب التصاعدي.
-        // P0 2026-09-27: 9s حدّية لـ~760 هدفاً — 12s للشامل الحقيقي.
-        const val THOROUGH_BUDGET_MS = 12_000L
-        const val MDNS_BUDGET_MS = 1_200L
-        const val MAX_PARALLEL = 24
+        // 24 هدفاً متوازياً × ~1.5s = ~16s للقائمة الكاملة. الميزانية القديمة
+        // (12s) كانت تُقطع قبل الوصول للعناوين العالية (.192+).
+        const val THOROUGH_BUDGET_MS = 20_000L
+        const val MDNS_BUDGET_MS = 1_800L
+        const val MAX_PARALLEL = 32
     }
 
     /** يتحقق من اتصال WiFi قبل البدء في المسح */

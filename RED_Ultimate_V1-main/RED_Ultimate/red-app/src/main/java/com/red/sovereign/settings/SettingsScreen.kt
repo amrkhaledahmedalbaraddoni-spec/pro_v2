@@ -523,7 +523,7 @@ private fun DestinationRow(row: SettingDestination, click: () -> Unit) = Card(
             }
         }
         item { FontBubblesEntry(onOpen = { showFontDialog = true }) }
-        item { LockedSetting("RTL والعربية", "مفعلة تلقائيًا حسب لغة النظام — Plex Arabic ثنائي النص") }
+        item { com.red.sovereign.ui.components.LanguageSelector() }
     }
     if (showFontDialog) FontBubblesDialog(viewModel = vm, onDismiss = { showFontDialog = false })
 }

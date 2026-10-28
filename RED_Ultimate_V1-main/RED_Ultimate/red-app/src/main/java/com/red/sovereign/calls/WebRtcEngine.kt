@@ -147,7 +147,13 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
         android.media.audiofx.AudioEffect.EFFECT_TYPE_NS
     )
 
-    private val audioDevice = JavaAudioDeviceModule.builder(context)
+    // P0 2026-10-28: JavaAudioDeviceModule ينشئ مؤشراً أصلياً (native pointer).
+    // كان يُنشأ كـ property initializer قبل WebRtcBootstrap.ensure(context)، أي قبل
+    // تحميل libjingle_peerconnection_so — فترمي nativeCreateAudioDeviceModule
+    // UnsatisfiedLinkError على الأجهزة التي لم تسبق تهيئة WebRTC فيها. الآن lazy
+    // ويُقيَّم داخل init بعد ensure() مباشرة (راجع init أدناه).
+    private val audioDevice: JavaAudioDeviceModule by lazy {
+        JavaAudioDeviceModule.builder(context)
         .setUseHardwareAcousticEchoCanceler(hwAec)
         .setUseHardwareNoiseSuppressor(hwNs)
         .setAudioSource(android.media.MediaRecorder.AudioSource.VOICE_COMMUNICATION)
@@ -174,6 +180,7 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
             }
         })
         .createAudioDeviceModule()
+    }
 
     private val factory: PeerConnectionFactory
     private var peer: PeerConnection? = null
@@ -531,31 +538,60 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
 
     fun setCameraEnabled(enabled: Boolean) {
         cameraRequestedByUser = enabled
-        if (enabled && hasVideo && localMedia?.videoTrack == null) {
+        // P0 2026-10-28: تشغيل الكاميرا من مكالمة صوتية كان مستحيلاً — الشرط
+        // القديم `enabled && hasVideo && localMedia?.videoTrack == null` لا يتحقق
+        // أبداً في مكالمة صوتية. الآن نرقّي للمكالمة المرئية فعلياً مع إعادة تفاوض.
+        if (enabled && localMedia?.videoTrack == null && CameraCaptureFactory.hasCameraPermission(context)) {
             scope.launch {
-                val track = createVideoTrack()
-                if (track != null) {
-                    val pc = peer ?: return@launch
-                    val audio = localMedia?.audioTrack ?: return@launch
-                    val sender = pc.addTrack(track, listOf("younes-stream"))
-                    videoSender = sender
-                    applySimulcast(sender, currentBitrateProfile, svcEnabled)
-                    applyCodecPreferences(mediaKind)
-                    localMedia = LocalMedia(audio, track)
-                    hasVideo = true
-                    pc.createOffer(sdpObserver(setLocal = true), offerAnswerConstraints())
+                val pc = peer ?: return@launch
+                val audio = localMedia?.audioTrack ?: return@launch
+                val track = createVideoTrack() ?: run {
+                    events.onCameraUnavailable()
+                    return@launch
                 }
+                val sender = pc.addTrack(track, listOf("younes-stream"))
+                videoSender = sender
+                applySimulcast(sender, currentBitrateProfile, svcEnabled)
+                hasVideo = true
+                if (!mediaKind.wantsVideo) mediaKind = CallMediaKind.VIDEO
+                applyCodecPreferences(mediaKind)
+                localMedia = LocalMedia(audio, track)
+                pc.createOffer(sdpObserver(setLocal = true), offerAnswerConstraints())
             }
         } else {
             applyEffectiveCameraState()
         }
     }
 
-    fun switchCamera() { (capturer as? org.webrtc.CameraVideoCapturer)?.switchCamera(null) }
+    fun switchCamera() {
+        CameraCaptureFactory.switchCamera(capturer, tag = "engine", listener = object : CameraCaptureFactory.Listener {
+            override fun onFailure(reason: String) {
+                events.onError("CAMERA_SWITCH_FAILED: $reason")
+            }
+        })
+    }
+
+    /**
+     * P0 2026-10-28: كان أي عيّنة إحصائية واحدة بجودة POOR (حتى قبل وصول إحصاءات
+     * حقيقية) تقلب الملف إلى AUDIO_ONLY فيُعطّل مسار الفيديو نهائياً — فتظهر
+     * «الكاميرا لا تعمل» في كل مكالمة فيديو. الآن:
+     *  - hysteresis: 3 عيّنات POOR متتالية قبل التخفيض، وعيّنة جيدة واحدة للرجوع.
+     *  - لا نعطّل كاميرا طلبها المستخدم صراحة؛ نخفضها إلى LOW (240p) مثل واتساب،
+     *    والقرار النهائي بإيقاف الفيديو يبقى بيد YounesCallService مع إشعار واضح.
+     */
+    private var consecutivePoorSamples = 0
 
     fun applyAdaptiveBitrate(stats: NetworkStats) {
         lastStats = stats
-        val recommended = NetworkStats.recommendBitrate(stats.quality)
+        if (stats.quality == NetworkStats.Quality.POOR) consecutivePoorSamples++ else consecutivePoorSamples = 0
+        val effectiveStats = if (consecutivePoorSamples >= 3) stats else {
+            // لا تخفّض قبل التأكد؛ عيّنات UNKNOWN (بداية المكالمة) محايدة تماماً.
+            stats.copy(quality = if (stats.quality == NetworkStats.Quality.POOR) NetworkStats.Quality.FAIR else stats.quality)
+        }
+        var recommended = NetworkStats.recommendBitrate(effectiveStats.quality)
+        if (recommended == NetworkStats.BitrateProfile.AUDIO_ONLY && cameraRequestedByUser && hasVideo) {
+            recommended = NetworkStats.BitrateProfile.LOW
+        }
         if (recommended == currentBitrateProfile) return
         currentBitrateProfile = recommended
         applyEffectiveCameraState()
@@ -565,8 +601,9 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
     }
 
     private fun applyEffectiveCameraState() {
-        val networkAllowsVideo = currentBitrateProfile != NetworkStats.BitrateProfile.AUDIO_ONLY
-        localMedia?.videoTrack?.setEnabled(hasVideo && cameraRequestedByUser && networkAllowsVideo)
+        // نية المستخدم هي المصدر: إن طلب الكاميرا تبقى مفعّلة، والشبكة تتحكم
+        // بمعدل البت لا بوجود الفيديو. هذا يمنع الشاشة السوداء الدائمة.
+        localMedia?.videoTrack?.setEnabled(hasVideo && cameraRequestedByUser)
     }
 
     fun currentBitrate() = currentBitrateProfile
@@ -630,9 +667,9 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
     fun release() {
         scope.cancel()
         stopScreenShare()
-        runCatching { capturer?.stopCapture() }; capturer?.dispose(); textureHelper?.dispose(); capturer = null; textureHelper = null
+        releaseCameraResources()
         localMedia?.audioTrack?.dispose(); localMedia?.videoTrack?.dispose()
-        audioSource?.dispose(); videoSource?.dispose(); audioSource = null; videoSource = null
+        audioSource?.dispose(); audioSource = null
         peer?.close(); peer?.dispose(); peer = null; localMedia = null
         // AUTO-FIX (call audio): the ADM owns AudioRecord/AudioTrack threads - release it with
         // the engine, otherwise it leaks across calls and can starve the next call's mic.
@@ -695,7 +732,6 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
             NetworkStats.BitrateProfile.LOW
         )
 
-        var lastError: Throwable? = null
         // جرّب أولاً profile الحالي مع fallback
         for (profile in tryList) {
             val result = tryCreateVideoTrackWithProfile(profile)
@@ -707,53 +743,69 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
             val result = tryCreateVideoTrackWithProfile(profile)
             if (result != null) return result
         }
-        android.util.Log.e("WebRtcEngine", "All video capture fallbacks failed", lastError)
+        android.util.Log.e("WebRtcEngine", "All video capture fallbacks failed")
         events.onCameraUnavailable()
         return null
     }
 
+    /** يحرّر كل موارد الالتقاط بأمان — يُستدعى قبل أي إعادة محاولة. */
+    private fun releaseCameraResources() {
+        runCatching { capturer?.stopCapture() }
+        runCatching { capturer?.dispose() }
+        runCatching { textureHelper?.dispose() }
+        runCatching { videoSource?.dispose() }
+        capturer = null
+        textureHelper = null
+        videoSource = null
+    }
+
     private fun tryCreateVideoTrackWithProfile(profile: NetworkStats.BitrateProfile): VideoTrack? {
-        return runCatching {
-            val selected = camera(context) ?: return null
-            capturer = selected
-            videoSource = factory.createVideoSource(false)
-            if (videoSource == null) {
-                android.util.Log.e("WebRtcEngine", "createVideoSource returned null")
-                capturer?.dispose(); capturer = null
-                return null
+        // كل محاولة تبدأ نظيفة — كان تسريب SurfaceTextureHelper بين المحاولات
+        // يستنفد سياق EGL فتفشل المحاولات التالية بصمت (شاشة سوداء).
+        releaseCameraResources()
+        val selected = CameraCaptureFactory.create(
+            context = context,
+            preferFront = true,
+            tag = "engine-${profile.videoWidth}x${profile.videoHeight}",
+            listener = object : CameraCaptureFactory.Listener {
+                override fun onFailure(reason: String) {
+                    android.util.Log.w("WebRtcEngine", "camera event: $reason")
+                }
             }
-            textureHelper = SurfaceTextureHelper.create("YounesCamera", egl.eglBaseContext)
-            if (textureHelper == null) {
-                android.util.Log.e("WebRtcEngine", "SurfaceTextureHelper.create returned null — EGL exhausted")
-                videoSource?.dispose(); videoSource = null
-                capturer?.dispose(); capturer = null
-                return null
-            }
+        ).capturer
+        if (selected == null) {
+            android.util.Log.e("WebRtcEngine", "No camera capturer available (permission/hardware/busy)")
+            return null
+        }
+        capturer = selected
+        var track: VideoTrack? = null
+        try {
+            val source = factory.createVideoSource(false)
+            videoSource = source
+            val helper = SurfaceTextureHelper.create("YounesCamera", egl.eglBaseContext)
+            textureHelper = helper
             // capturerObserver قد يكون null إن فشل videoSource — لا تمرر null للـ native
-            val observer = videoSource?.capturerObserver
-            if (observer == null) {
-                android.util.Log.e("WebRtcEngine", "capturerObserver null")
-                textureHelper?.dispose(); textureHelper = null
-                videoSource?.dispose(); videoSource = null
-                capturer?.dispose(); capturer = null
-                return null
+            val observer = source?.capturerObserver
+            if (source == null || helper == null || observer == null) {
+                android.util.Log.e("WebRtcEngine", "video source/helper/observer unavailable — aborting capture")
+            } else {
+                selected.initialize(helper, context, observer)
+                // FIX: أزل coerceAtLeast — كان يحول LOW 320x240 إلى 640x480 قسراً ويهدر fallback
+                selected.startCapture(profile.videoWidth, profile.videoHeight, profile.videoFramerate)
+                track = factory.createVideoTrack("younes-video", source).apply {
+                    // نية المستخدم فقط — لم نعد نعطّل المسار بسبب AUDIO_ONLY التلقائي.
+                    setEnabled(cameraRequestedByUser)
+                }
             }
-            selected.initialize(textureHelper, context, observer)
-            // FIX: أزل coerceAtLeast — كان يحول LOW 320x240 إلى 640x480 قسراً ويهدر fallback
-            selected.startCapture(profile.videoWidth, profile.videoHeight, profile.videoFramerate)
-            factory.createVideoTrack("younes-video", videoSource).apply {
-                setEnabled(cameraRequestedByUser && currentBitrateProfile != NetworkStats.BitrateProfile.AUDIO_ONLY)
-            }
-        }.onFailure { e ->
-            android.util.Log.e("WebRtcEngine", "Failed to create video track ${profile.videoWidth}x${profile.videoHeight}@${profile.videoFramerate}", e)
-            runCatching { capturer?.stopCapture() }
-            capturer?.dispose()
-            textureHelper?.dispose()
-            videoSource?.dispose()
-            capturer = null
-            textureHelper = null
-            videoSource = null
-        }.getOrNull()
+        } catch (e: Throwable) {
+            android.util.Log.e(
+                "WebRtcEngine",
+                "Failed to create video track ${profile.videoWidth}x${profile.videoHeight}@${profile.videoFramerate}",
+                e
+            )
+        }
+        if (track == null) releaseCameraResources()
+        return track
     }
 
     private fun initialBitrateProfile(): NetworkStats.BitrateProfile {
@@ -763,24 +815,6 @@ class WebRtcEngine(private val context: Context, private val events: Events) {
             profile.videoKbps >= 500 -> NetworkStats.BitrateProfile.STANDARD
             else -> NetworkStats.BitrateProfile.LOW
         }
-    }
-
-    private fun camera(context: Context): VideoCapturer? {
-        val camera2Capturer = runCatching {
-            val enumerator = Camera2Enumerator(context)
-            enumerator.deviceNames.firstOrNull(enumerator::isFrontFacing)?.let {
-                enumerator.createCapturer(it, null)
-            } ?: enumerator.deviceNames.firstNotNullOfOrNull { enumerator.createCapturer(it, null) }
-        }.getOrNull()
-
-        if (camera2Capturer != null) return camera2Capturer
-
-        return runCatching {
-            val enumerator = org.webrtc.Camera1Enumerator(true)
-            enumerator.deviceNames.firstOrNull(enumerator::isFrontFacing)?.let {
-                enumerator.createCapturer(it, null)
-            } ?: enumerator.deviceNames.firstNotNullOfOrNull { enumerator.createCapturer(it, null) }
-        }.getOrNull()
     }
 
     private fun sdpObserver(setLocal: Boolean = false, after: (() -> Unit)? = null): SdpObserver = object : SdpObserver {

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    P0 2026-10-28 — English (en) locale.
+    Arabic is the default in values/strings.xml. Any string not listed here
+    falls back to Arabic; a full extraction of the hardcoded Compose labels
+    into string resources is tracked in the localization roadmap.
+-->
+<resources>
+    <string name="app_name">Younes</string>
+
+    <!-- Notification channels -->
+    <string name="channel_messages_name">Younes messages</string>
+    <string name="channel_messages_desc">Encrypted message notifications</string>
+    <string name="channel_calls_name">Younes calls</string>
+    <string name="channel_calls_desc">Call notifications</string>
+    <string name="channel_calls_incoming_name">Incoming call</string>
+    <string name="channel_calls_incoming_desc">Incoming calls with ringtone and highest priority</string>
+    <string name="channel_service_name">Younes service</string>
+    <string name="channel_service_desc">Persistent encrypted connection</string>
+    <string name="notification_ongoing">Younes call</string>
+    <string name="notification_end">End</string>
+    <string name="notification_reject">Reject</string>
+    <string name="notification_accept">Open to accept</string>
+    <string name="notification_mute">Mute microphone</string>
+    <string name="incoming_video_call">Incoming video call</string>
+    <string name="incoming_voice_call">Incoming voice call</string>
+
+    <!-- Connection status -->
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_connected_local">Connected to local server</string>
+    <string name="status_connecting_local">Connecting to local server…</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_disconnected_retry">Disconnected — retrying…</string>
+    <string name="status_encryption_failed">Encryption failed</string>
+    <string name="status_session_expired">Session expired</string>
+
+    <!-- Network / server -->
+    <string name="network_connectivity_title">Network &amp; connectivity</string>
+    <string name="server_endpoint_title">Server address</string>
+    <string name="connection_mode_title">Connection mode</string>
+    <string name="turn_stun_title">TURN / STUN</string>
+    <string name="offline_queue_title">Offline queue</string>
+    <string name="offline_banner_text">You are offline — messages will be sent when the connection returns</string>
+    <string name="offline_retry_now">Retry now</string>
+
+    <!-- Settings -->
+    <string name="device_settings_title">Device settings</string>
+    <string name="section_account_identity">Account &amp; identity</string>
+    <string name="sec_privacy_title">Privacy &amp; security</string>
+    <string name="encryption_keys_title">Encryption keys</string>
+    <string name="read_receipts_title">Read receipts</string>
+    <string name="link_previews_title">Link previews</string>
+    <string name="screen_security_title">Screen security</string>
+    <string name="app_lock_title">App lock</string>
+    <string name="data_export_title">Export data</string>
+    <string name="media_storage_title">Media &amp; storage</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="settings_clear_cache">Clear cache</string>
+    <string name="coming_soon">Coming soon</string>
+
+    <!-- Permission disclosure -->
+    <string name="perm_disclosure_title">Permissions &amp; data safety</string>
+    <string name="perm_disclosure_sub">Why Younes needs these permissions and what happens to your data</string>
+    <string name="perm_mic_title">Microphone</string>
+    <string name="perm_mic_sub">Only for calls and voice messages — no background recording.</string>
+    <string name="perm_camera_title">Camera</string>
+    <string name="perm_camera_sub">Only for video calls and scanning invite codes — never in the background.</string>
+    <string name="perm_notif_title">Notifications</string>
+    <string name="perm_continue">Got it — continue</string>
+    <string name="perm_open_settings">Open permission settings</string>
+    <string name="data_safety_title">Data safety</string>
+
+    <!-- Auth / connection (new 2026-10-28) -->
+    <string name="server_status_title">Server status</string>
+    <string name="server_status_connecting">Scanning your network for Younes…</string>
+    <string name="server_status_ready">Secure server</string>
+    <string name="server_discover_again">Discover again</string>
+    <string name="server_diagnostics">Diagnose connection</string>
+    <string name="server_diagnostics_running">Diagnosing…</string>
+    <string name="server_manual_hint">192.168.1.50:8088 or http://red.local:8088</string>
+    <string name="server_manual_title">Set server address manually</string>
+    <string name="server_save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="app_tagline">Sovereign encrypted communications • no phone number</string>
+    <string name="feature_e2ee">End-to-end encryption</string>
+    <string name="feature_lan_server">Your server on your network</string>
+    <string name="keys_never_leave">Your keys are generated on-device and never leave it</string>
+    <string name="create_sovereign_account">Create sovereign account</string>
+    <string name="already_have_account">I already have an account</string>
+    <string name="camera_unavailable_banner">Camera unavailable — the call continues in audio mode</string>
+    <string name="camera_retry">Retry</string>
+    <string name="camera_permission_denied">Camera unavailable — the call will continue in audio mode</string>
+    <string name="cd_younes_logo">Younes logo</string>
+    <string name="cd_server">Server</string>
+    <string name="cd_connection_quality">Connection quality</string>
+</resources>

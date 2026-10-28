@@ -1,5 +1,8 @@
 # YOUNES / RED Sovereign
 
+> 📋 **2026-10-28 — [تقرير التدقيق والتطوير الشامل](تقرير_التدقيق_والتطوير_الشامل_2026-10-28.md)** — تدقيق git/GitHub (لا فقدان لعمل مهم)، إصلاح الكاميرا في كل أنواع المكالمات، إصلاح الاتصال بالخادم على الشبكة المحلية، ونظام تصميم موحّد (خلفيات/ألوان/أيقونات/أنيميشن).
+
+> 🚀 **اتصال سريع على LAN:** من `RED_Ultimate_V1-main/RED_Ultimate` شغّل `docker compose --profile lan-discovery up -d` ثم افتح شاشة الدخول في التطبيق واضغط **«تشخيص الاتصال»** أو أدخل `192.168.1.50:8088` مباشرة.
 
 > The canonical project tree lives under [`RED_Ultimate_V1-main/`](RED_Ultimate_V1-main/README.md).
 

@@ -102,6 +102,8 @@ fun ModernRedDashboard(
     deepLinkConversation: String? = null
 ) {
     val context = LocalContext.current
+    // P0 2026-10-28: كل نقاط بدء المكالمات تمر عبر بوابة الأذونات (الكاميرا!).
+    val startCall = rememberCallStarter()
     val hazeState = rememberSovereignHaze()
     
     // تكيّف العرض 2026: WindowLayout الموحّد للمشروع (هاتف/قابل للطي/لوحي/سطح مكتب).
@@ -447,7 +449,7 @@ fun ModernRedDashboard(
             onCall = { person, video ->
                 showContacts = false
                 currentSection = ModernSection.CALLS
-                YounesCallService.start(context, person.redId, video)
+                startCall(person.redId, video)
             },
             onCreateGroup = { showContacts = false; showCreateGroup = true }
         )
@@ -952,13 +954,13 @@ fun ModernCallsScreen(
                             }
                             IconButton(onClick = {
                                 // توحيد onChat: إعادة الاتصال تتطلب معرفًا صالحًا فقط.
-                                if (YounesId.isValid(call.peerId)) YounesCallService.start(context, call.peerId, video = false)
+                                if (YounesId.isValid(call.peerId)) startCall(call.peerId, video = false)
                                 else android.widget.Toast.makeText(context, YounesId.ERROR_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
                             }) {
                                 Icon(Icons.Default.Call, "إعادة صوتية", tint = YounesPrimary)
                             }
                             IconButton(onClick = {
-                                if (YounesId.isValid(call.peerId)) YounesCallService.start(context, call.peerId, video = true)
+                                if (YounesId.isValid(call.peerId)) startCall(call.peerId, video = true)
                                 else android.widget.Toast.makeText(context, YounesId.ERROR_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
                             }) {
                                 Icon(Icons.Default.Videocam, "إعادة فيديو", tint = YounesPrimary)
@@ -1133,10 +1135,10 @@ fun ModernCallsScreen(
                                         Text(contact.redId, color = YounesMuted, fontSize = 11.sp)
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        IconButton(onClick = { showNewCallDialog = false; YounesCallService.start(context, contact.redId, video = false) }) {
+                                        IconButton(onClick = { showNewCallDialog = false; startCall(contact.redId, video = false) }) {
                                             Icon(Icons.Default.Call, "صوت")
                                         }
-                                        IconButton(onClick = { showNewCallDialog = false; YounesCallService.start(context, contact.redId, video = true) }) {
+                                        IconButton(onClick = { showNewCallDialog = false; startCall(contact.redId, video = true) }) {
                                             Icon(Icons.Default.Videocam, "فيديو")
                                         }
                                     }
@@ -1157,7 +1159,7 @@ fun ModernCallsScreen(
                                 android.widget.Toast.makeText(context, YounesId.ERROR_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
                             } else {
                                 showNewCallDialog = false
-                                YounesCallService.start(context, cleanModernTarget, video = false)
+                                startCall(cleanModernTarget, video = false)
                                 newCallTargetInput = ""
                             }
                         },
@@ -1169,7 +1171,7 @@ fun ModernCallsScreen(
                                 android.widget.Toast.makeText(context, YounesId.ERROR_MESSAGE, android.widget.Toast.LENGTH_SHORT).show()
                             } else {
                                 showNewCallDialog = false
-                                YounesCallService.start(context, cleanModernTarget, video = true)
+                                startCall(cleanModernTarget, video = true)
                                 newCallTargetInput = ""
                             }
                         },

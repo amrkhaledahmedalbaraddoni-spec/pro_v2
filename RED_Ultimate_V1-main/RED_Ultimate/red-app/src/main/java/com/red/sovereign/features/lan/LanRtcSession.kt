@@ -1,6 +1,7 @@
 package com.red.sovereign.features.lan
 
 import android.content.Context
+import com.red.sovereign.calls.CameraCaptureFactory
 import com.red.sovereign.calls.WebRtcBootstrap
 import com.red.sovereign.calls.WebRtcEngine
 import kotlinx.coroutines.CoroutineScope
@@ -62,10 +63,13 @@ class LanRtcSession(
         android.media.audiofx.NoiseSuppressor::class.java,
         android.media.audiofx.AudioEffect.EFFECT_TYPE_NS
     )
-    private val audioDevice = JavaAudioDeviceModule.builder(context)
-        .setUseHardwareAcousticEchoCanceler(hwAec)
-        .setUseHardwareNoiseSuppressor(hwNs)
-        .createAudioDeviceModule()
+    // P0 2026-10-28: lazy بعد ensure() — انظر WebRtcEngine.
+    private val audioDevice: JavaAudioDeviceModule by lazy {
+        JavaAudioDeviceModule.builder(context)
+            .setUseHardwareAcousticEchoCanceler(hwAec)
+            .setUseHardwareNoiseSuppressor(hwNs)
+            .createAudioDeviceModule()
+    }
 
     private val factory: PeerConnectionFactory
     private var peer: PeerConnection? = null
@@ -162,7 +166,7 @@ class LanRtcSession(
     }
 
     fun switchCamera() {
-        (capturer as? org.webrtc.CameraVideoCapturer)?.switchCamera(null)
+        CameraCaptureFactory.switchCamera(capturer, tag = "lan")
     }
 
     fun release() {
@@ -197,41 +201,75 @@ class LanRtcSession(
         while (pendingIce.isNotEmpty()) pc.addIceCandidate(pendingIce.removeFirst())
     }
 
+    private fun releaseCameraResources() {
+        runCatching { capturer?.stopCapture() }
+        runCatching { capturer?.dispose() }
+        runCatching { textureHelper?.dispose() }
+        runCatching { videoSource?.dispose() }
+        capturer = null
+        textureHelper = null
+        videoSource = null
+    }
+
+    /**
+     * P0 2026-10-28: كانت مكالمات LAN P2P المرئية تفشل دائماً بسبب:
+     *  - عدم التحقق من إذن CAMERA قبل `Camera2Enumerator(context)` (SecurityException).
+     *  - تمرير `videoSource?.capturerObserver` القابل للـ null إلى native initialize.
+     *  - لا Camera1 fallback ولا أي تسجيل لسبب الفشل.
+     * الآن كل ذلك عبر [CameraCaptureFactory] مع سبب واضح في السجل.
+     */
     private fun startCapture() {
         if (localVideoTrack != null) return
-        val enumerator = Camera2Enumerator(context)
-        val names = enumerator.deviceNames
-        val front = names.firstOrNull { enumerator.isFrontFacing(it) } ?: names.firstOrNull()
-        if (front == null) {
-            android.util.Log.w("LanRtcSession", "no camera — audio-only")
+        if (!CameraCaptureFactory.hasCameraPermission(context)) {
+            android.util.Log.w("LanRtcSession", "CAMERA permission missing — LAN call continues audio-only")
             wantVideo = false
+            events.onError("CAMERA_PERMISSION_DENIED")
             return
         }
-        val cap: VideoCapturer? = enumerator.createCapturer(front, null)
+        releaseCameraResources()
+        val result = CameraCaptureFactory.create(context, preferFront = true, tag = "lan")
+        val cap = result.capturer
         if (cap == null) {
+            android.util.Log.w("LanRtcSession", "no capturer (${result.reason}) — audio-only")
             wantVideo = false
-            return
-        }
-        textureHelper = SurfaceTextureHelper.create("lan-capture", egl.eglBaseContext)
-        videoSource = factory.createVideoSource(cap.isScreencast)
-        cap.initialize(textureHelper, context, videoSource?.capturerObserver)
-        // محاولة بدقات متعددة — بعض الأجهزة ترفض 640x480 (نمط MeshRtcSession)
-        var started = false
-        for ((w, h, fps) in listOf(Triple(640, 480, 24), Triple(640, 360, 24), Triple(320, 240, 15))) {
-            if (runCatching { cap.startCapture(w, h, fps) }.isSuccess) {
-                started = true
-                break
-            }
-            runCatching { cap.stopCapture() }
-        }
-        if (!started) {
-            android.util.Log.w("LanRtcSession", "capture failed — audio-only")
-            wantVideo = false
+            events.onError(result.reason)
             return
         }
         capturer = cap
-        localVideoTrack = factory.createVideoTrack("lan-video", videoSource)
-        peer?.addTrack(localVideoTrack, listOf("lan-stream"))
+        var track: VideoTrack? = null
+        try {
+            val source = factory.createVideoSource(cap.isScreencast)
+            videoSource = source
+            val helper = SurfaceTextureHelper.create("lan-capture", egl.eglBaseContext)
+            textureHelper = helper
+            val observer = source?.capturerObserver
+            if (source == null || helper == null || observer == null) {
+                android.util.Log.w("LanRtcSession", "video source/helper/observer unavailable — audio-only")
+            } else {
+                cap.initialize(helper, context, observer)
+                // محاولة بدقات متعددة — بعض الأجهزة ترفض 640x480 (نمط MeshRtcSession)
+                var started = false
+                for ((w, h, fps) in listOf(Triple(640, 480, 24), Triple(640, 360, 24), Triple(320, 240, 15))) {
+                    if (runCatching { cap.startCapture(w, h, fps) }.isSuccess) {
+                        started = true
+                        break
+                    }
+                    runCatching { cap.stopCapture() }
+                }
+                if (started) track = factory.createVideoTrack("lan-video", source)
+                else android.util.Log.w("LanRtcSession", "all startCapture attempts failed — audio-only")
+            }
+        } catch (e: Throwable) {
+            android.util.Log.e("LanRtcSession", "startCapture failed: ${e.message}", e)
+        }
+        if (track == null) {
+            releaseCameraResources()
+            wantVideo = false
+            events.onError("CAMERA_OPEN_FAILED")
+            return
+        }
+        localVideoTrack = track
+        peer?.addTrack(track, listOf("lan-stream"))
     }
 
     private fun offerAnswerConstraints() = MediaConstraints().apply {
